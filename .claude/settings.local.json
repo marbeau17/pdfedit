@@ -16,7 +16,8 @@
       "Bash(which vercel:*)",
       "Bash(vercel:*)",
       "Bash(curl:*)",
-      "mcp__claude_ai_Vercel__get_runtime_logs"
+      "mcp__claude_ai_Vercel__get_runtime_logs",
+      "Bash(echo:*)"
     ]
   }
 }

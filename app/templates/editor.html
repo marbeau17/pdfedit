@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}PDF Workshop Pro - Editor{% endblock %}
+{% block title %}PDF Workshop Pro - エディタ{% endblock %}
 
 {% block header_actions %}
 <span id="header-file-info" class="text-sm text-gray-300">
-    <span class="text-gold font-medium" id="header-filename">Loading...</span>
+    <span class="text-gold font-medium" id="header-filename">読み込み中...</span>
 </span>
 {% endblock %}
 
 {% block sidebar %}
-<div class="p-3 space-y-0" role="toolbar" aria-label="PDF editing tools">
+<div class="p-3 space-y-0" role="toolbar" aria-label="PDF編集ツール">
 
     <!-- File Info (always open) -->
     <div id="file-info" class="border-b border-gray-200 dark:border-gray-700">
@@ -19,19 +19,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <span>File Info</span>
+                <span>ファイル情報</span>
             </h2>
             <div class="space-y-2 text-sm">
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">Filename</span>
-                    <span id="sidebar-filename" class="font-medium text-gray-800 dark:text-gray-200 truncate ml-2 max-w-[140px]">Loading...</span>
+                    <span class="text-gray-500 dark:text-gray-400">ファイル名</span>
+                    <span id="sidebar-filename" class="font-medium text-gray-800 dark:text-gray-200 truncate ml-2 max-w-[140px]">読み込み中...</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">Pages</span>
+                    <span class="text-gray-500 dark:text-gray-400">ページ数</span>
                     <span class="font-medium text-gray-800 dark:text-gray-200" id="page-count-display">--</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">Size</span>
+                    <span class="text-gray-500 dark:text-gray-400">サイズ</span>
                     <span class="font-medium text-gray-800 dark:text-gray-200" id="file-size-display">--</span>
                 </div>
             </div>
@@ -49,56 +49,56 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
-                <span>Page Operations</span>
+                <span>ページ操作</span>
             </span>
             <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="open" x-transition id="panel-page-operations" role="region" aria-label="Page operations" class="px-2 pb-3">
+        <div x-show="open" x-transition id="panel-page-operations" role="region" aria-label="ページ操作" class="px-2 pb-3">
             <div class="space-y-3">
                 <!-- Delete pages -->
                 <div class="space-y-2">
-                    <label for="delete-range" class="block text-sm text-gray-600 dark:text-gray-400">Delete pages (range)</label>
+                    <label for="delete-range" class="block text-sm text-gray-600 dark:text-gray-400">ページ削除（範囲指定）</label>
                     <div class="flex space-x-2">
-                        <input type="text" id="delete-range" placeholder="e.g. 1,3,5-8"
+                        <input type="text" id="delete-range" placeholder="例: 1,3,5-8"
                                class="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                         <button onclick="EditorUI.deletePageRange(document.getElementById('delete-range').value)"
-                                aria-label="Delete selected pages"
+                                aria-label="選択ページを削除"
                                 class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center space-x-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
-                            <span>Delete</span>
+                            <span>削除</span>
                         </button>
                     </div>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">Comma-separated, ranges supported (e.g. 1-3)</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">カンマ区切り、範囲指定可（例: 1-3）</p>
                 </div>
 
                 <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
                 <!-- Add blank page -->
                 <button onclick="addBlankPage()"
-                        aria-label="Add a blank page"
+                        aria-label="空白ページを追加"
                         class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    <span>Add Blank Page</span>
+                    <span>空白ページ追加</span>
                 </button>
 
                 <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
                 <!-- Undo -->
                 <button id="undo-btn" onclick="EditorUI.undoAction()"
-                        aria-label="Undo last action"
+                        aria-label="最後の操作を元に戻す"
                         class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M3 10h10a5 5 0 010 10H9m-6-10l4-4m-4 4l4 4"/>
                     </svg>
-                    <span>Undo</span>
+                    <span>元に戻す</span>
                 </button>
             </div>
         </div>
@@ -115,22 +115,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                <span>Optimize</span>
+                <span>最適化</span>
             </span>
             <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="open" x-transition id="panel-optimize" role="region" aria-label="Optimize" class="px-2 pb-3">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Compress images and optimize PDF file size.</p>
+        <div x-show="open" x-transition id="panel-optimize" role="region" aria-label="最適化" class="px-2 pb-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">画像を圧縮してPDFファイルサイズを最適化します。</p>
             <button onclick="EditorUI.optimizePdf()"
-                    aria-label="Optimize PDF"
+                    aria-label="PDFを最適化"
                     class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                <span>Optimize PDF</span>
+                <span>PDFを最適化</span>
             </button>
         </div>
     </div>
@@ -146,29 +146,29 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                 </svg>
-                <span>Watermark Removal</span>
+                <span>透かし削除</span>
             </span>
             <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="open" x-transition id="panel-watermark" role="region" aria-label="Watermark removal" class="px-2 pb-3">
+        <div x-show="open" x-transition id="panel-watermark" role="region" aria-label="透かし削除" class="px-2 pb-3">
             <div class="space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label for="wm-margin-x" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Margin X</label>
+                        <label for="wm-margin-x" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">マージン X</label>
                         <input type="number" id="wm-margin-x" value="106"
                                class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                     </div>
                     <div>
-                        <label for="wm-margin-y" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Margin Y</label>
+                        <label for="wm-margin-y" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">マージン Y</label>
                         <input type="number" id="wm-margin-y" value="21"
                                class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                     </div>
                 </div>
                 <div>
-                    <label for="wm-special-pages" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Special pages (comma-separated)</label>
-                    <input type="text" id="wm-special-pages" placeholder="e.g. 1,5,10"
+                    <label for="wm-special-pages" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">特殊ページ（カンマ区切り）</label>
+                    <input type="text" id="wm-special-pages" placeholder="例: 1,5,10"
                            class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                 </div>
                 <button onclick="EditorUI.removeWatermark({
@@ -176,13 +176,13 @@
                             marginY: parseInt(document.getElementById('wm-margin-y').value) || 21,
                             specialPages: document.getElementById('wm-special-pages').value
                         })"
-                        aria-label="Remove watermark"
+                        aria-label="透かしを削除"
                         class="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                     </svg>
-                    <span>Remove Watermark</span>
+                    <span>透かしを削除</span>
                 </button>
             </div>
         </div>
@@ -199,17 +199,17 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
                 </svg>
-                <span>Branding</span>
+                <span>ブランディング</span>
             </span>
             <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="open" x-transition id="panel-branding" role="region" aria-label="Branding" class="px-2 pb-3">
+        <div x-show="open" x-transition id="panel-branding" role="region" aria-label="ブランディング" class="px-2 pb-3">
             <div class="space-y-3">
                 <!-- Logo upload (client-side) -->
                 <div>
-                    <label for="logo-file-input" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Logo Upload</label>
+                    <label for="logo-file-input" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">ロゴアップロード</label>
                     <input type="file" id="logo-file-input" accept="image/*"
                            onchange="EditorUI.handleLogoUpload(this)"
                            class="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-navy file:text-white hover:file:bg-navy/90 text-gray-500 dark:text-gray-400" />
@@ -221,57 +221,57 @@
                 <!-- Branding options -->
                 <div class="space-y-3">
                     <div>
-                        <label for="brand-target-pages" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Target pages (blank=all)</label>
-                        <input type="text" id="brand-target-pages" placeholder="e.g. 1,3,5-8"
+                        <label for="brand-target-pages" class="block text-xs text-gray-600 dark:text-gray-400 mb-1">対象ページ（空欄=全ページ）</label>
+                        <input type="text" id="brand-target-pages" placeholder="例: 1,3,5-8"
                                class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                     </div>
 
                     <!-- Checkboxes -->
                     <fieldset class="space-y-2">
-                        <legend class="sr-only">Branding options</legend>
+                        <legend class="sr-only">ブランディングオプション</legend>
                         <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                             <input type="checkbox" id="brand-enable-logo" checked
                                    class="rounded border-gray-300 dark:border-gray-600 text-gold focus:ring-gold" />
-                            <span>Insert logo</span>
+                            <span>ロゴを挿入</span>
                         </label>
                         <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                             <input type="checkbox" id="brand-enable-page-num" checked
                                    class="rounded border-gray-300 dark:border-gray-600 text-gold focus:ring-gold" />
-                            <span>Insert page numbers</span>
+                            <span>ページ番号を挿入</span>
                         </label>
                         <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                             <input type="checkbox" id="brand-skip-first-logo" checked
                                    class="rounded border-gray-300 dark:border-gray-600 text-gold focus:ring-gold" />
-                            <span>Skip logo on page 1</span>
+                            <span>1ページ目のロゴをスキップ</span>
                         </label>
                         <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                             <input type="checkbox" id="brand-skip-first-num" checked
                                    class="rounded border-gray-300 dark:border-gray-600 text-gold focus:ring-gold" />
-                            <span>Skip number on page 1</span>
+                            <span>1ページ目の番号をスキップ</span>
                         </label>
                     </fieldset>
 
                     <!-- Logo position/dimensions -->
                     <fieldset>
-                        <legend class="sr-only">Logo position and size</legend>
+                        <legend class="sr-only">ロゴの位置とサイズ</legend>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label for="brand-logo-mx" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo margin X</label>
+                                <label for="brand-logo-mx" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">ロゴ マージン X</label>
                                 <input type="number" id="brand-logo-mx" value="30"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
                             <div>
-                                <label for="brand-logo-my" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo margin Y</label>
+                                <label for="brand-logo-my" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">ロゴ マージン Y</label>
                                 <input type="number" id="brand-logo-my" value="15"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
                             <div>
-                                <label for="brand-logo-w" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo width</label>
+                                <label for="brand-logo-w" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">ロゴ幅</label>
                                 <input type="number" id="brand-logo-w" value="100"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
                             <div>
-                                <label for="brand-logo-h" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo height</label>
+                                <label for="brand-logo-h" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">ロゴ高さ</label>
                                 <input type="number" id="brand-logo-h" value="40"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
@@ -280,15 +280,15 @@
 
                     <!-- Page number position -->
                     <fieldset>
-                        <legend class="sr-only">Page number position</legend>
+                        <legend class="sr-only">ページ番号の位置</legend>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label for="brand-pnum-x" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Number X</label>
+                                <label for="brand-pnum-x" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">番号 X</label>
                                 <input type="number" id="brand-pnum-x" value="300"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
                             <div>
-                                <label for="brand-pnum-y" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Number Y</label>
+                                <label for="brand-pnum-y" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">番号 Y</label>
                                 <input type="number" id="brand-pnum-y" value="20"
                                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
                             </div>
@@ -308,13 +308,13 @@
                                 pageNumX: parseInt(document.getElementById('brand-pnum-x').value) || 300,
                                 pageNumY: parseInt(document.getElementById('brand-pnum-y').value) || 20
                             })"
-                            aria-label="Apply branding"
+                            aria-label="ブランディング適用"
                             class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
                         </svg>
-                        <span>Apply Branding</span>
+                        <span>ブランディング適用</span>
                     </button>
                 </div>
             </div>
@@ -332,22 +332,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                 </svg>
-                <span>Page Size</span>
+                <span>ページサイズ</span>
             </span>
             <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="open" x-transition id="panel-resize" role="region" aria-label="Page size" class="px-2 pb-3">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Resize all pages to match the first page.</p>
+        <div x-show="open" x-transition id="panel-resize" role="region" aria-label="ページサイズ" class="px-2 pb-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">すべてのページを1ページ目のサイズに揃えます。</p>
             <button onclick="EditorUI.resizeToFirstPage()"
-                    aria-label="Resize all pages to first page size"
+                    aria-label="すべてのページを1ページ目のサイズに統一"
                     class="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                 </svg>
-                <span>Resize to P1</span>
+                <span>P1サイズに統一</span>
             </button>
         </div>
     </div>
@@ -355,12 +355,12 @@
     <!-- AI Workshop -->
     <div class="border-b border-gray-200 dark:border-gray-700">
         <a href="#" id="ai-workshop-link"
-           aria-label="Open AI Workshop (Gemini)"
+           aria-label="AIワークショップを開く (Gemini)"
            class="w-full flex items-center gap-2 py-3 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
-            <span>AI Workshop</span>
+            <span>AIワークショップ</span>
             <span class="ml-auto text-xs text-purple-400">Gemini</span>
         </a>
     </div>
@@ -368,12 +368,12 @@
     <!-- Area Replace -->
     <div class="border-b border-gray-200 dark:border-gray-700">
         <a href="#" id="area-replace-link"
-           aria-label="Open Area Replace tool (Canvas)"
+           aria-label="エリア画像置換ツールを開く (Canvas)"
            class="w-full flex items-center gap-2 py-3 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
-            <span>Area Replace</span>
+            <span>エリア画像置換</span>
             <span class="ml-auto text-xs text-orange-400">Canvas</span>
         </a>
     </div>
@@ -385,16 +385,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
-            <span>Export</span>
+            <span>エクスポート</span>
         </h2>
         <button onclick="EditorUI.downloadPdf()"
-                aria-label="Download edited PDF"
+                aria-label="編集済みPDFをダウンロード"
                 class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg">
             <svg class="w-5 h-5 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
-            <span>Download PDF</span>
+            <span>PDFをダウンロード</span>
         </button>
     </div>
 
@@ -402,7 +402,7 @@
     <div class="px-2 pt-3">
         <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3" role="note">
             <p class="text-xs text-blue-700 dark:text-blue-300">
-                <span class="font-semibold">Tip:</span> Drag and drop thumbnails to reorder pages.
+                <span class="font-semibold">ヒント:</span> サムネイルをドラッグ＆ドロップしてページを並べ替えできます。
             </p>
         </div>
     </div>
@@ -417,12 +417,12 @@
 
     <!-- Section header -->
     <div class="flex items-center justify-between mb-4 md:mb-6">
-        <h1 class="text-lg md:text-xl font-bold text-navy dark:text-gold">PDF Editor</h1>
+        <h1 class="text-lg md:text-xl font-bold text-navy dark:text-gold">PDFエディタ</h1>
         <span id="page-count-badge" class="text-sm text-gray-500 dark:text-gray-400"></span>
     </div>
 
     <!-- Preview grid container -->
-    <div id="preview-grid" role="list" aria-label="PDF pages"
+    <div id="preview-grid" role="list" aria-label="PDFページ"
          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <!-- Thumbnails rendered by EditorUI.renderThumbnails() -->
         <div class="col-span-full text-center py-16 text-gray-400">
@@ -430,7 +430,7 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
-            <p>Loading PDF...</p>
+            <p>PDF読み込み中...</p>
         </div>
     </div>
 </div>
@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const file = await PdfStorage.getFile(fileId);
         if (!file) {
-            EditorUI.showToast('File not found', 'error');
+            EditorUI.showToast('ファイルが見つかりません', 'error');
             setTimeout(() => { window.location.href = '/'; }, 1500);
             return;
         }
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (e) {
         console.error('Failed to load PDF:', e);
-        EditorUI.showToast('Failed to load: ' + e.message, 'error');
+        EditorUI.showToast('読み込み失敗: ' + e.message, 'error');
     }
 });
 
@@ -495,9 +495,9 @@ async function addBlankPage() {
         await PdfEngine.addBlankPage();
         await EditorUI.renderThumbnails();
         EditorUI.updateFileInfo();
-        EditorUI.showToast('Blank page added', 'success');
+        EditorUI.showToast('空白ページ追加完了', 'success');
     } catch (e) {
-        EditorUI.showToast('Failed to add page: ' + e.message, 'error');
+        EditorUI.showToast('ページ追加失敗: ' + e.message, 'error');
     }
 }
 

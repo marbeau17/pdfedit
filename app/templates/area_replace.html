@@ -2,12 +2,12 @@
 
 {% block sidebar %}
 <div class="space-y-4">
-    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">Area Replace</h2>
-    <p class="text-sm text-gray-600 dark:text-gray-400">Select an area on a page and replace it with an image.</p>
+    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">エリア画像置換</h2>
+    <p class="text-sm text-gray-600 dark:text-gray-400">エリアを選択して画像を置換します。</p>
 
     <!-- Page selector (populated dynamically) -->
     <div>
-        <label for="area-page-select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Page</label>
+        <label for="area-page-select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">対象ページ</label>
         <select id="area-page-select"
                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                 onchange="loadPageForSelection()">
@@ -16,7 +16,7 @@
 
     <!-- Upload replacement image (local only) -->
     <div>
-        <label for="replacement-image-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Image</label>
+        <label for="replacement-image-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">置換画像</label>
         <input type="file" id="replacement-image-input" name="image" accept="image/*"
                class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100 dark:file:bg-navy-900 dark:file:text-navy-300"
                onchange="handleImageUpload(this)" />
@@ -25,7 +25,7 @@
 
     <!-- Selection coordinates (auto-filled by canvas) -->
     <fieldset class="space-y-2">
-        <legend class="block text-xs font-medium text-gray-700 dark:text-gray-300">Selected Area</legend>
+        <legend class="block text-xs font-medium text-gray-700 dark:text-gray-300">選択エリア</legend>
         <div class="grid grid-cols-2 gap-2">
             <div>
                 <label for="sel-x" class="text-xs text-gray-500">X</label>
@@ -36,11 +36,11 @@
                 <input type="number" id="sel-y" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
             <div>
-                <label for="sel-w" class="text-xs text-gray-500">Width</label>
+                <label for="sel-w" class="text-xs text-gray-500">幅</label>
                 <input type="number" id="sel-w" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
             <div>
-                <label for="sel-h" class="text-xs text-gray-500">Height</label>
+                <label for="sel-h" class="text-xs text-gray-500">高さ</label>
                 <input type="number" id="sel-h" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
         </div>
@@ -49,14 +49,14 @@
     <!-- Keep aspect ratio -->
     <label for="keep-aspect" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <input type="checkbox" id="keep-aspect" class="rounded border-gray-300" />
-        <span>Keep aspect ratio</span>
+        <span>アスペクト比を維持</span>
     </label>
 
     <!-- Execute replacement -->
     <button onclick="executeReplace()"
-            aria-label="Replace the selected area with the uploaded image"
+            aria-label="選択エリアをアップロード画像で置換"
             class="w-full px-4 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-semibold text-sm transition-colors">
-        Replace Area
+        エリアを置換
     </button>
 
     <div id="area-replace-result" class="mt-2" aria-live="polite"></div>
@@ -65,19 +65,19 @@
     <hr class="border-gray-200 dark:border-gray-700" />
     <a href="#" id="back-editor-link"
        class="block text-center text-sm text-navy-500 hover:text-navy-600 dark:text-navy-400">
-        &larr; Back to Editor
+        &larr; エディタに戻る
     </a>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Area Image Replacement</h1>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Draw a rectangle on the page to select the replacement area.</p>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">エリア画像置換</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">ページ上で矩形を描画して置換エリアを選択してください。</p>
 
     <!-- Canvas container -->
     <div class="relative inline-block border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-auto bg-white shadow-lg w-full" style="-webkit-overflow-scrolling: touch;">
-        <canvas id="area-canvas" class="cursor-crosshair" style="max-width: 100%; height: auto;" role="img" aria-label="Page preview canvas for area selection. Draw a rectangle to select the replacement area."></canvas>
+        <canvas id="area-canvas" class="cursor-crosshair" style="max-width: 100%; height: auto;" role="img" aria-label="エリア選択用ページプレビューキャンバス。矩形を描画して置換エリアを選択してください。"></canvas>
     </div>
 </div>
 {% endblock %}
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     for (let i = 1; i <= pageCount; i++) {
         const opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = `Page ${i}`;
+        opt.textContent = `ページ ${i}`;
         select.appendChild(opt);
     }
 
@@ -293,7 +293,7 @@ async function executeReplace() {
     const resultEl = document.getElementById('area-replace-result');
 
     if (!replacementImageBytes) {
-        resultEl.innerHTML = '<p class="text-sm text-red-500">Please upload a replacement image first.</p>';
+        resultEl.innerHTML = '<p class="text-sm text-red-500">置換画像をアップロードしてください。</p>';
         return;
     }
 
@@ -303,7 +303,7 @@ async function executeReplace() {
     const pdfH = parseInt(document.getElementById('sel-h').value);
 
     if (pdfW <= 0 || pdfH <= 0) {
-        resultEl.innerHTML = '<p class="text-sm text-red-500">Please draw a selection rectangle on the canvas.</p>';
+        resultEl.innerHTML = '<p class="text-sm text-red-500">キャンバス上で選択矩形を描画してください。</p>';
         return;
     }
 
@@ -311,7 +311,7 @@ async function executeReplace() {
     const keepAspect = document.getElementById('keep-aspect').checked;
 
     try {
-        resultEl.innerHTML = '<p class="text-sm text-gray-500">Replacing...</p>';
+        resultEl.innerHTML = '<p class="text-sm text-gray-500">置換中...</p>';
 
         // pdf-lib uses bottom-left origin; canvas uses top-left origin.
         // Convert canvas Y (top-down) to PDF Y (bottom-up).
@@ -355,17 +355,17 @@ async function executeReplace() {
         // Save updated PDF back to IndexedDB
         await PdfStorage.updateFile(currentFileId, PdfEngine.getCurrentBytes());
 
-        resultEl.innerHTML = '<p class="text-sm text-green-600 dark:text-green-400">Area replaced successfully.</p>';
+        resultEl.innerHTML = '<p class="text-sm text-green-600 dark:text-green-400">エリア置換完了。</p>';
 
         // Re-render the page to show the change
         await loadPageForSelection();
 
         if (typeof EditorUI !== 'undefined') {
-            EditorUI.showToast('Area replaced', 'success');
+            EditorUI.showToast('エリア置換完了', 'success');
         }
     } catch (err) {
         console.error('Area replace error:', err);
-        resultEl.innerHTML = `<p class="text-sm text-red-500">Error: ${err.message}</p>`;
+        resultEl.innerHTML = `<p class="text-sm text-red-500">エラー: ${err.message}</p>`;
     }
 }
 </script>

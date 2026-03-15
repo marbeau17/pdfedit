@@ -396,6 +396,85 @@ const PdfEngine = (() => {
         return result;
     }
 
+    /**
+     * Render a page to a Blob (PNG)
+     * @param {number} pageNum - 1-based
+     * @param {number} scale - render scale (default 1.5 for good quality)
+     * @returns {Promise<Blob>}
+     */
+    async function renderPageToBlob(pageNum, scale = 1.5) {
+        const canvas = document.createElement('canvas');
+        await renderPage(pageNum, canvas, scale);
+        return new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/png');
+        });
+    }
+
+    /**
+     * Render a page to base64 data URL
+     */
+    async function renderPageToBase64(pageNum, scale = 1.5) {
+        const canvas = document.createElement('canvas');
+        await renderPage(pageNum, canvas, scale);
+        return canvas.toDataURL('image/png');
+    }
+
+    /**
+     * Replace a page with an image (for AI-generated slides)
+     * @param {number} pageNum - 1-based page number to replace
+     * @param {Uint8Array} imageBytes - PNG or JPG image bytes
+     * @param {string} imageType - 'png' or 'jpg'
+     */
+    async function replacePageWithImage(pageNum, imageBytes, imageType = 'png') {
+        const pdfDoc = await PDFLib.PDFDocument.load(_currentBytes);
+        const pageCount = pdfDoc.getPageCount();
+        if (pageNum < 1 || pageNum > pageCount) return;
+
+        // Get original page dimensions
+        const origPage = pdfDoc.getPage(pageNum - 1);
+        const { width, height } = origPage.getSize();
+
+        // Remove original page
+        pdfDoc.removePage(pageNum - 1);
+
+        // Create new page with same dimensions
+        const newPage = pdfDoc.insertPage(pageNum - 1, [width, height]);
+
+        // Embed and draw image
+        let img;
+        if (imageType === 'png') {
+            img = await pdfDoc.embedPng(imageBytes);
+        } else {
+            img = await pdfDoc.embedJpg(imageBytes);
+        }
+
+        // Scale image to fit page while maintaining aspect ratio
+        const imgAspect = img.width / img.height;
+        const pageAspect = width / height;
+        let drawWidth, drawHeight, drawX, drawY;
+
+        if (imgAspect > pageAspect) {
+            drawWidth = width;
+            drawHeight = width / imgAspect;
+            drawX = 0;
+            drawY = (height - drawHeight) / 2;
+        } else {
+            drawHeight = height;
+            drawWidth = height * imgAspect;
+            drawX = (width - drawWidth) / 2;
+            drawY = 0;
+        }
+
+        newPage.drawImage(img, {
+            x: drawX,
+            y: drawY,
+            width: drawWidth,
+            height: drawHeight,
+        });
+
+        await _applyChanges(pdfDoc);
+    }
+
     // Public API
     return {
         loadFromFile,
@@ -423,5 +502,8 @@ const PdfEngine = (() => {
         undo,
         download,
         parsePageRange,
+        renderPageToBlob,
+        renderPageToBase64,
+        replacePageWithImage,
     };
 })();
