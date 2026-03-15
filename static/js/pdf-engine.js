@@ -313,16 +313,22 @@ const PdfEngine = (() => {
 
         // Embed logo if provided
         let logoImage = null;
-        if (enableLogo && logoBytes) {
+        if (enableLogo && logoBytes && logoBytes.length > 0) {
+            console.log('[addBranding] Embedding logo:', logoBytes.length, 'bytes');
             try {
                 logoImage = await pdfDoc.embedPng(logoBytes);
+                console.log('[addBranding] PNG embed success:', logoImage.width, 'x', logoImage.height);
             } catch (e) {
+                console.warn('[addBranding] PNG embed failed, trying JPG:', e.message);
                 try {
                     logoImage = await pdfDoc.embedJpg(logoBytes);
+                    console.log('[addBranding] JPG embed success');
                 } catch (e2) {
-                    console.warn('Logo embed failed:', e2.message);
+                    console.error('[addBranding] Logo embed failed completely:', e2.message);
                 }
             }
+        } else {
+            console.log('[addBranding] No logo:', { enableLogo, hasBytes: !!logoBytes, bytesLen: logoBytes?.length });
         }
 
         for (let i = 0; i < pages.length; i++) {

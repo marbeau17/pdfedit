@@ -170,10 +170,29 @@ const EditorUI = (() => {
         // Load default logo if none uploaded
         if (!_logoBytes) await loadDefaultLogo();
         options.logoBytes = _logoBytes;
-        await PdfEngine.addBranding(options);
-        await renderThumbnails();
-        updateFileInfo();
-        showToast('ブランディング適用完了', 'success');
+
+        // Parse targetPages string to array of ints (or null for all)
+        if (typeof options.targetPages === 'string') {
+            const parsed = PdfEngine.parsePageRange(options.targetPages);
+            options.targetPages = parsed.length > 0 ? parsed : null;
+        }
+
+        console.log('[Branding] options:', {
+            enableLogo: options.enableLogo,
+            enablePageNum: options.enablePageNum,
+            logoBytes: _logoBytes ? `${_logoBytes.length} bytes` : 'null',
+            targetPages: options.targetPages,
+        });
+
+        try {
+            await PdfEngine.addBranding(options);
+            await renderThumbnails();
+            updateFileInfo();
+            showToast('ブランディング適用完了', 'success');
+        } catch (e) {
+            console.error('[Branding] error:', e);
+            showToast('ブランディングエラー: ' + e.message, 'error');
+        }
     }
 
     /**
