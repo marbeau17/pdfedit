@@ -17,7 +17,8 @@
       "Bash(vercel:*)",
       "Bash(curl:*)",
       "mcp__claude_ai_Vercel__get_runtime_logs",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python tests/monkey_test.py 2>&1)"
     ]
   }
 }
