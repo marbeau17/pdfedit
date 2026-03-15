@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block sidebar %}
+<div class="space-y-4">
+    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">Area Replace</h2>
+    <p class="text-sm text-gray-600 dark:text-gray-400">Select an area on a page and replace it with an image.</p>
+
+    <!-- Page selector -->
+    <div>
+        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Page</label>
+        <select id="area-page-select"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                onchange="loadPageForSelection()">
+            {% for p in pages %}
+            <option value="{{ p }}">Page {{ p }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Upload replacement image -->
+    <div>
+        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Image</label>
+        <form hx-post="/api/area/upload-image"
+              hx-encoding="multipart/form-data"
+              hx-target="#replace-image-status"
+              hx-swap="innerHTML"
+              hx-indicator="#loading">
+            <input type="hidden" name="session_id" value="{{ session_id }}" />
+            <input type="file" name="image" accept="image/*"
+                   class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100 dark:file:bg-navy-900 dark:file:text-navy-300"
+                   onchange="this.closest('form').requestSubmit()" />
+        </form>
+        <div id="replace-image-status" class="mt-2"></div>
+    </div>
+
+    <!-- Selection coordinates (auto-filled by canvas) -->
+    <div class="space-y-2">
+        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Selected Area</label>
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="text-xs text-gray-500">X</label>
+                <input type="number" id="sel-x" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
+            </div>
+            <div>
+                <label class="text-xs text-gray-500">Y</label>
+                <input type="number" id="sel-y" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
+            </div>
+            <div>
+                <label class="text-xs text-gray-500">Width</label>
+                <input type="number" id="sel-w" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
+            </div>
+            <div>
+                <label class="text-xs text-gray-500">Height</label>
+                <input type="number" id="sel-h" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Keep aspect ratio -->
+    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <input type="checkbox" id="keep-aspect" class="rounded border-gray-300" />
+        <span>Keep aspect ratio</span>
+    </label>
+
+    <!-- Execute replacement -->
+    <button onclick="executeReplace()"
+            class="w-full px-4 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-semibold text-sm transition-colors">
+        Replace Area
+    </button>
+
+    <div id="area-replace-result" class="mt-2"></div>
+
+    <!-- Navigation -->
+    <hr class="border-gray-200 dark:border-gray-700" />
+    <a href="/editor/{{ session_id }}"
+       class="block text-center text-sm text-navy-500 hover:text-navy-600 dark:text-navy-400">
+        &larr; Back to Editor
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Area Image Replacement</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Draw a rectangle on the page to select the replacement area.</p>
+
+    <!-- Canvas container -->
+    <div class="relative inline-block border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white shadow-lg">
+        <canvas id="area-canvas" class="cursor-crosshair"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sessionId = "{{ session_id }}";
+let canvasEl, ctx, bgImage;
+let isDrawing = false;
+let startX = 0, startY = 0, rectX = 0, rectY = 0, rectW = 0, rectH = 0;
+
+function loadPageForSelection() {
+    const pageNum = document.getElementById('area-page-select').value;
+    bgImage = new Image();
+    bgImage.onload = function() {
+        canvasEl.width = bgImage.width;
+        canvasEl.height = bgImage.height;
+        redraw();
+    };
+    bgImage.src = `/api/area/page-image/${sessionId}/${pageNum}`;
+}
+
+function redraw() {
+    if (!ctx || !bgImage) return;
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    ctx.drawImage(bgImage, 0, 0);
+    if (rectW > 0 && rectH > 0) {
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 3]);
+        ctx.strokeRect(rectX, rectY, rectW, rectH);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+        ctx.fillRect(rectX, rectY, rectW, rectH);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    canvasEl = document.getElementById('area-canvas');
+    ctx = canvasEl.getContext('2d');
+
+    canvasEl.addEventListener('mousedown', function(e) {
+        const r = canvasEl.getBoundingClientRect();
+        startX = e.clientX - r.left;
+        startY = e.clientY - r.top;
+        isDrawing = true;
+    });
+
+    canvasEl.addEventListener('mousemove', function(e) {
+        if (!isDrawing) return;
+        const r = canvasEl.getBoundingClientRect();
+        const curX = e.clientX - r.left;
+        const curY = e.clientY - r.top;
+        rectX = Math.min(startX, curX);
+        rectY = Math.min(startY, curY);
+        rectW = Math.abs(curX - startX);
+        rectH = Math.abs(curY - startY);
+        redraw();
+        updateCoords();
+    });
+
+    canvasEl.addEventListener('mouseup', function() {
+        isDrawing = false;
+    });
+
+    loadPageForSelection();
+});
+
+function updateCoords() {
+    document.getElementById('sel-x').value = Math.round(rectX);
+    document.getElementById('sel-y').value = Math.round(rectY);
+    document.getElementById('sel-w').value = Math.round(rectW);
+    document.getElementById('sel-h').value = Math.round(rectH);
+}
+
+function executeReplace() {
+    const page = document.getElementById('area-page-select').value;
+    const x = document.getElementById('sel-x').value;
+    const y = document.getElementById('sel-y').value;
+    const w = document.getElementById('sel-w').value;
+    const h = document.getElementById('sel-h').value;
+    const keep = document.getElementById('keep-aspect').checked;
+
+    const formData = new FormData();
+    formData.append('session_id', sessionId);
+    formData.append('page', page);
+    formData.append('x', x);
+    formData.append('y', y);
+    formData.append('width', w);
+    formData.append('height', h);
+    formData.append('keep_aspect', keep);
+
+    htmx.ajax('POST', '/api/area/replace', {
+        target: '#area-replace-result',
+        swap: 'innerHTML',
+        values: Object.fromEntries(formData),
+    }).then(() => {
+        loadPageForSelection();
+    });
+}
+</script>
+{% endblock %}

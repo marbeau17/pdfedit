@@ -1,0 +1,12 @@
+<div class="rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+     hx-ext="sse"
+     sse-connect="/api/ai/status/{{ task_id }}"
+     sse-swap="message"
+     hx-target="#ai-progress-content">
+    <div id="ai-progress-content">
+        <div class="flex items-center gap-3">
+            <div class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Processing...</span>
+        </div>
+    </div>
+</div>

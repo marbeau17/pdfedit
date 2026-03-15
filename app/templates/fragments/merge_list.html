@@ -1,0 +1,19 @@
+<div class="space-y-2" id="merge-file-list">
+    {% for file in files %}
+    <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600" data-session-id="{{ file.session_id }}">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ file.filename }}</p>
+                <p class="text-xs text-gray-500">{{ file.page_count }} pages</p>
+            </div>
+        </div>
+        <span class="text-xs text-gray-400 cursor-move">&#x2630;</span>
+    </div>
+    {% endfor %}
+    {% if files %}
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Total: {{ files|length }} files, {{ files|map(attribute='page_count')|sum }} pages</p>
+    {% endif %}
+</div>

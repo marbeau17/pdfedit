@@ -1,0 +1,30 @@
+<div class="page-card relative group rounded-xl overflow-hidden shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
+     data-page-num="{{ page_num }}">
+    <!-- Page thumbnail -->
+    <div class="aspect-[3/4] bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <img src="/api/preview/{{ session_id }}/{{ page_num }}"
+             alt="ページ {{ page_num }}"
+             loading="lazy"
+             class="w-full h-full object-contain" />
+    </div>
+
+    <!-- Bottom overlay with page number -->
+    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-navy text-white shadow-sm">
+            {{ page_num }}
+        </span>
+    </div>
+
+    <!-- Delete button (visible on hover) -->
+    <button hx-post="/api/pages/remove"
+            hx-vals='{"session_id": "{{ session_id }}", "pages": "{{ page_num }}"}'
+            hx-target="#preview-grid"
+            hx-swap="innerHTML"
+            hx-indicator="#loading"
+            class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+            title="このページを削除">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+</div>

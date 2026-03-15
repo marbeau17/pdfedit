@@ -1,0 +1,11 @@
+<div class="rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+    <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ image_filename }}</p>
+            <p class="text-xs text-gray-500">{{ "%.1f"|format(image_size / 1024) }} KB - Ready for replacement</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,99 @@
+/* ===================================================
+   PDF Workshop Pro - Custom Styles
+   Most styling handled by Tailwind CDN; this file
+   covers behaviour-driven and pseudo-element styles
+   that Tailwind utility classes cannot express.
+   =================================================== */
+
+/* --------------------------------------------------
+   HTMX Indicator
+   -------------------------------------------------- */
+.htmx-indicator {
+    display: none;
+    transition: opacity 0.2s ease-in;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: block;
+    opacity: 1;
+}
+
+/* --------------------------------------------------
+   Sortable.js - Drag & Drop
+   -------------------------------------------------- */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: rgba(207, 174, 112, 0.15); /* gold tint */
+    border: 2px dashed #CFAE70;
+    border-radius: 0.5rem;
+}
+
+.sortable-drag {
+    opacity: 0.9;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+    transform: rotate(1.5deg);
+    z-index: 9999;
+}
+
+/* --------------------------------------------------
+   Page Card
+   -------------------------------------------------- */
+.page-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: grab;
+}
+
+.page-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #CFAE70;
+}
+
+.page-card:active {
+    cursor: grabbing;
+}
+
+.page-card.selected {
+    ring: 2px solid #CFAE70;
+    border-color: #CFAE70;
+    box-shadow: 0 0 0 3px rgba(207, 174, 112, 0.3);
+}
+
+/* --------------------------------------------------
+   Custom Scrollbar
+   -------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+    background-color: rgba(107, 114, 128, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(107, 114, 128, 0.8);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
