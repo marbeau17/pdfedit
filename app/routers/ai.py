@@ -51,20 +51,22 @@ async def vision_analyze(
 
         prompt = (
             "このプレゼンテーションスライド画像を詳細に分析し、以下のXML形式で構造化して出力してください。"
-            "すべて日本語で記述してください。\n\n"
+            "すべて日本語で記述してください。\n"
+            "各テキスト要素にはfont-size属性を推定して付与してください（単位: pt）。\n"
+            "XMLタグ以外のテキストは出力しないでください。\n\n"
             "<slide>\n"
-            "  <title>スライドのタイトル</title>\n"
-            "  <subtitle>サブタイトル（あれば）</subtitle>\n"
+            "  <title font-size=\"28\">スライドのタイトル</title>\n"
+            "  <subtitle font-size=\"18\">サブタイトル（あれば）</subtitle>\n"
             "  <content>\n"
             "    <section name=\"セクション名\">\n"
-            "      <bullet>箇条書き項目</bullet>\n"
+            "      <bullet font-size=\"14\">箇条書き項目</bullet>\n"
             "    </section>\n"
             "  </content>\n"
-            "  <charts>グラフ・チャートの詳細説明（種類、データ、ラベル）</charts>\n"
+            "  <charts font-size=\"12\">グラフ・チャートの詳細説明（種類、データ、ラベル）</charts>\n"
             "  <images>画像・図形の説明（位置、内容）</images>\n"
             "  <layout>レイアウトの特徴（配置、構成）</layout>\n"
             "  <color_scheme>配色（メインカラー、アクセントカラー）</color_scheme>\n"
-            "  <notes>その他の特記事項</notes>\n"
+            "  <notes font-size=\"10\">その他の特記事項</notes>\n"
             "</slide>"
         )
 
@@ -109,7 +111,8 @@ async def generate_slide(req: GenerateSlideRequest):
             "- 白背景\n"
             "- 16:9のアスペクト比\n"
             "- クリーンでモダンなデザイン\n"
-            "- 日本語テキストを正確に描画\n\n"
+            "- 日本語テキストを正確に描画\n"
+            "- 各要素のfont-size属性をpt単位のフォントサイズとして反映\n\n"
             f"XML:\n{req.xml}"
         )
 

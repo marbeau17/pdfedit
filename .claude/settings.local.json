@@ -18,7 +18,8 @@
       "Bash(curl:*)",
       "mcp__claude_ai_Vercel__get_runtime_logs",
       "Bash(echo:*)",
-      "Bash(PYTHONIOENCODING=utf-8 python tests/monkey_test.py 2>&1)"
+      "Bash(PYTHONIOENCODING=utf-8 python tests/monkey_test.py 2>&1)",
+      "Bash(PYTHONIOENCODING=utf-8 python tests/test_e2e_xml_editor.py 2>&1)"
     ]
   }
 }

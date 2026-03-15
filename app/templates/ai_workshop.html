@@ -168,11 +168,28 @@ async function analyzeSlides() {
                         <p class="text-xs text-gray-500 mb-1 font-medium">元のスライド</p>
                         <img src="${origDataUrl}" class="w-full rounded shadow-sm" alt="ページ${p}の元画像" />
                     </div>
-                    <!-- XMLエディタ -->
-                    <div class="p-3 border-r border-gray-200 dark:border-gray-700">
-                        <p class="text-xs text-gray-500 mb-1 font-medium">XML構造（編集可能）</p>
-                        <textarea id="xml-editor-${p}" class="w-full h-64 text-xs font-mono bg-gray-900 text-green-400 rounded p-2 border border-gray-700 resize-y" spellcheck="false">${escapeHtml(result.xml)}</textarea>
-                        <button onclick="saveXml(${p})" class="mt-1 px-3 py-1 bg-navy text-white rounded text-xs hover:bg-navy/90">💾 XML保存</button>
+                    <!-- 構造化XMLエディタ -->
+                    <div class="p-3 border-r border-gray-200 dark:border-gray-700 md:border-b-0 border-b">
+                        <!-- タブ切り替え -->
+                        <div class="flex gap-2 mb-2 border-b border-gray-200 dark:border-gray-700" role="tablist">
+                            <button id="tab-structured-${p}" role="tab" aria-selected="true"
+                                    onclick="switchTab(${p}, 'structured')"
+                                    class="text-xs px-3 py-1.5 border-b-2 border-gold font-semibold text-navy dark:text-gold">構造化</button>
+                            <button id="tab-xml-${p}" role="tab" aria-selected="false"
+                                    onclick="switchTab(${p}, 'xml')"
+                                    class="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">XML</button>
+                        </div>
+
+                        <!-- 構造化エディタ -->
+                        <div id="structured-editor-${p}" role="tabpanel" class="overflow-y-auto max-h-96" style="scrollbar-width: thin;"></div>
+
+                        <!-- 生XMLエディタ (デフォルト非表示) -->
+                        <div id="xml-container-${p}" role="tabpanel" class="hidden">
+                            <textarea id="xml-editor-${p}" class="w-full h-64 text-xs font-mono bg-gray-900 text-green-400 rounded p-2 border border-gray-700 resize-y" spellcheck="false">${escapeHtml(result.xml)}</textarea>
+                        </div>
+
+                        <!-- 保存ボタン -->
+                        <button onclick="saveXmlFromEditor(${p})" class="mt-2 px-3 py-1.5 bg-navy text-white rounded text-xs hover:bg-navy/90 w-full">XMLに反映</button>
                     </div>
                     <!-- 生成結果 -->
                     <div class="p-3">
@@ -186,6 +203,19 @@ async function analyzeSlides() {
         }
 
         workspace.innerHTML = html;
+
+        // 構造化エディタを初期化
+        for (const p of pages) {
+            try {
+                const cleanXml = XmlEditor.extractXmlFromResponse(analysisData[p].xml);
+                const data = XmlEditor.parseXml(cleanXml);
+                XmlEditor.renderEditor(data, `structured-editor-${p}`, p);
+            } catch (e) {
+                // パース失敗時はXMLタブをデフォルト表示
+                switchTab(p, 'xml');
+            }
+        }
+
         document.getElementById('generate-btn').classList.remove('hidden');
         hideProgress();
 
@@ -195,13 +225,59 @@ async function analyzeSlides() {
     }
 }
 
-function saveXml(pageNum) {
-    const textarea = document.getElementById(`xml-editor-${pageNum}`);
-    if (textarea && analysisData[pageNum]) {
-        analysisData[pageNum].xml = textarea.value;
-        analysisData[pageNum].genImage = null; // 再生成が必要
-        EditorUI.showToast(`P${pageNum}: XML保存完了`, 'success');
+function switchTab(pageNum, tabName) {
+    const structuredContainer = document.getElementById(`structured-editor-${pageNum}`);
+    const xmlContainer = document.getElementById(`xml-container-${pageNum}`);
+    const tabStructured = document.getElementById(`tab-structured-${pageNum}`);
+    const tabXml = document.getElementById(`tab-xml-${pageNum}`);
+    if (!structuredContainer || !xmlContainer) return;
+
+    if (tabName === 'structured') {
+        const textarea = document.getElementById(`xml-editor-${pageNum}`);
+        try {
+            const cleanXml = XmlEditor.extractXmlFromResponse(textarea.value);
+            const data = XmlEditor.parseXml(cleanXml);
+            XmlEditor.renderEditor(data, `structured-editor-${pageNum}`, pageNum);
+            structuredContainer.classList.remove('hidden');
+            xmlContainer.classList.add('hidden');
+            tabStructured.className = 'text-xs px-3 py-1.5 border-b-2 border-gold font-semibold text-navy dark:text-gold';
+            tabXml.className = 'text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300';
+            tabStructured.setAttribute('aria-selected', 'true');
+            tabXml.setAttribute('aria-selected', 'false');
+        } catch (e) {
+            EditorUI.showToast('XMLパースエラー: ' + e.message, 'error');
+        }
+    } else {
+        const xml = XmlEditor.collectToXml(`structured-editor-${pageNum}`, pageNum);
+        const textarea = document.getElementById(`xml-editor-${pageNum}`);
+        if (textarea) textarea.value = xml;
+        if (analysisData[pageNum]) analysisData[pageNum].xml = xml;
+        structuredContainer.classList.add('hidden');
+        xmlContainer.classList.remove('hidden');
+        tabXml.className = 'text-xs px-3 py-1.5 border-b-2 border-gold font-semibold text-navy dark:text-gold';
+        tabStructured.className = 'text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300';
+        tabXml.setAttribute('aria-selected', 'true');
+        tabStructured.setAttribute('aria-selected', 'false');
     }
+}
+
+function saveXmlFromEditor(pageNum) {
+    const structuredEditor = document.getElementById(`structured-editor-${pageNum}`);
+    const isStructuredVisible = structuredEditor && !structuredEditor.classList.contains('hidden');
+
+    if (isStructuredVisible) {
+        const xml = XmlEditor.collectToXml(`structured-editor-${pageNum}`, pageNum);
+        const textarea = document.getElementById(`xml-editor-${pageNum}`);
+        if (textarea) textarea.value = xml;
+        if (analysisData[pageNum]) analysisData[pageNum].xml = xml;
+    } else {
+        const textarea = document.getElementById(`xml-editor-${pageNum}`);
+        if (textarea && analysisData[pageNum]) {
+            analysisData[pageNum].xml = textarea.value;
+        }
+    }
+    if (analysisData[pageNum]) analysisData[pageNum].genImage = null;
+    EditorUI.showToast(`P${pageNum}: XML保存完了`, 'success');
 }
 
 async function generateSlides() {
@@ -219,9 +295,13 @@ async function generateSlides() {
             const data = analysisData[p];
             showProgress(`P${p}: Geminiで画像生成中... (${i+1}/${pageNums.length})`);
 
-            // 最新のXMLを取得
+            // Get latest XML
+            const structuredEditor = document.getElementById(`structured-editor-${p}`);
+            if (structuredEditor && !structuredEditor.classList.contains('hidden')) {
+                data.xml = XmlEditor.collectToXml(`structured-editor-${p}`, p);
+            }
             const textarea = document.getElementById(`xml-editor-${p}`);
-            if (textarea) data.xml = textarea.value;
+            if (textarea) textarea.value = data.xml;
 
             // XMLをサーバー経由でGemini画像生成APIに送信
             const resp = await fetch('/api/ai/generate-slide', {

@@ -201,3 +201,40 @@
     h1 { font-size: 1.5rem; }
     h2 { font-size: 1.25rem; }
 }
+
+/* === Structured XML Editor === */
+.bullet-item {
+    transition: background-color 0.15s ease;
+}
+.bullet-item:hover {
+    background-color: rgba(207, 174, 112, 0.08);
+}
+.dark .bullet-item:hover {
+    background-color: rgba(207, 174, 112, 0.05);
+}
+.section-container {
+    border-left: 2px solid rgba(209, 213, 219, 0.5);
+    margin-left: 0.5rem;
+    padding-left: 0.75rem;
+}
+.dark .section-container {
+    border-color: rgba(75, 85, 99, 0.5);
+}
+.structured-editor-scroll {
+    max-height: 24rem;
+    overflow-y: auto;
+}
+.tab-active {
+    border-bottom: 2px solid #CFAE70;
+    font-weight: 600;
+}
+.font-size-select {
+    width: 3.5rem;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+}
+@media (max-width: 767px) {
+    .structured-editor-scroll { max-height: 16rem; }
+    .font-size-select { width: 3rem; }
+    .bullet-action-btn { opacity: 1; min-width: 36px; min-height: 36px; }
+}
