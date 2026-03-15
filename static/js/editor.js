@@ -125,10 +125,51 @@ const EditorUI = (() => {
         showToast('ダウンロード開始', 'success');
     }
 
+    // Store uploaded logo bytes
+    let _logoBytes = null;
+
+    /**
+     * Handle logo file upload from input
+     */
+    async function handleLogoUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        _logoBytes = new Uint8Array(arrayBuffer);
+        const preview = document.getElementById('logo-preview');
+        if (preview) {
+            const url = URL.createObjectURL(file);
+            preview.innerHTML = `<img src="${url}" class="h-8 object-contain rounded" alt="Logo" />
+                <span class="text-xs text-green-500 ml-2">${file.name}</span>`;
+        }
+        showToast('ロゴ読み込み完了', 'success');
+    }
+
+    /**
+     * Load default logo from server
+     */
+    async function loadDefaultLogo() {
+        if (_logoBytes) return; // Already loaded
+        try {
+            const resp = await fetch('/static/img/default_logo.png');
+            if (resp.ok) {
+                const buf = await resp.arrayBuffer();
+                _logoBytes = new Uint8Array(buf);
+                const preview = document.getElementById('logo-preview');
+                if (preview) {
+                    preview.innerHTML = '<span class="text-xs text-gray-500">デフォルトロゴ読み込み済み</span>';
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+
     /**
      * Add branding overlay
      */
     async function applyBranding(options = {}) {
+        // Load default logo if none uploaded
+        if (!_logoBytes) await loadDefaultLogo();
+        options.logoBytes = _logoBytes;
         await PdfEngine.addBranding(options);
         await renderThumbnails();
         updateFileInfo();
@@ -210,6 +251,8 @@ const EditorUI = (() => {
         undoAction,
         downloadPdf,
         applyBranding,
+        handleLogoUpload,
+        loadDefaultLogo,
         optimizePdf,
         updateFileInfo,
         showToast,

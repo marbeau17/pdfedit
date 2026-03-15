@@ -293,16 +293,37 @@ const PdfEngine = (() => {
         const {
             skipFirstPageNum = true,
             skipFirstLogo = true,
+            enableLogo = true,
+            enablePageNum = true,
             footerText = 'Strictly Private & Confidential',
             copyrightText = '\u00a92026 Meets Consulting Inc.',
             pageNumRight = 50,
             pageNumBottom = 30,
-            targetPages = null, // null = all pages
+            logoMarginX = 30,
+            logoMarginY = 15,
+            logoWidth = 100,
+            logoHeight = 40,
+            logoBytes = null,  // Uint8Array of PNG logo
+            targetPages = null,
         } = options;
 
         const pdfDoc = await PDFLib.PDFDocument.load(_currentBytes);
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         const pages = pdfDoc.getPages();
+
+        // Embed logo if provided
+        let logoImage = null;
+        if (enableLogo && logoBytes) {
+            try {
+                logoImage = await pdfDoc.embedPng(logoBytes);
+            } catch (e) {
+                try {
+                    logoImage = await pdfDoc.embedJpg(logoBytes);
+                } catch (e2) {
+                    console.warn('Logo embed failed:', e2.message);
+                }
+            }
+        }
 
         for (let i = 0; i < pages.length; i++) {
             const pageNum = i + 1;
@@ -311,22 +332,44 @@ const PdfEngine = (() => {
             const page = pages[i];
             const { width, height } = page.getSize();
 
-            // Footer
-            page.drawText(footerText, {
-                x: 40, y: 20, size: 8, font,
-                color: PDFLib.rgb(0.5, 0.5, 0.5),
-            });
-            page.drawText(copyrightText, {
-                x: width - 180, y: 20, size: 8, font,
-                color: PDFLib.rgb(0.5, 0.5, 0.5),
-            });
+            // Logo (top-right corner)
+            if (enableLogo && logoImage && !(pageNum === 1 && skipFirstLogo)) {
+                const lx = width - logoMarginX - logoWidth;
+                const ly = height - logoMarginY - logoHeight;
+                page.drawImage(logoImage, {
+                    x: lx, y: ly,
+                    width: logoWidth, height: logoHeight,
+                });
+            }
 
-            // Page number
-            if (!(pageNum === 1 && skipFirstPageNum)) {
+            // Footer text
+            if (enableLogo) {
+                page.drawText(footerText, {
+                    x: 40, y: 20, size: 8, font,
+                    color: PDFLib.rgb(0.5, 0.5, 0.5),
+                });
+                page.drawText('Internal Use Only', {
+                    x: 40 + font.widthOfTextAtSize(footerText + ' ', 8), y: 20, size: 8, font,
+                    color: PDFLib.rgb(0.81, 0.68, 0.44),
+                });
+                page.drawText(copyrightText, {
+                    x: width - 180, y: 20, size: 8, font,
+                    color: PDFLib.rgb(0.5, 0.5, 0.5),
+                });
+            }
+
+            // Page number with bar
+            if (enablePageNum && !(pageNum === 1 && skipFirstPageNum)) {
+                const pgX = width - pageNumRight;
+                const pgY = pageNumBottom;
                 page.drawText(String(pageNum), {
-                    x: width - pageNumRight,
-                    y: pageNumBottom,
-                    size: 12, font,
+                    x: pgX, y: pgY, size: 12, font,
+                    color: PDFLib.rgb(0.11, 0.19, 0.36),
+                });
+                // Vertical bar before number
+                page.drawRectangle({
+                    x: pgX - 15, y: pgY - 2,
+                    width: 2, height: 17,
                     color: PDFLib.rgb(0.11, 0.19, 0.36),
                 });
             }
