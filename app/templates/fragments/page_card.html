@@ -1,16 +1,20 @@
-<div class="page-card relative group rounded-xl overflow-hidden shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
-     data-page-num="{{ page_num }}">
+<div class="page-card relative group rounded-xl overflow-hidden shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+     data-page-num="{{ page_num }}"
+     role="listitem"
+     aria-label="Page {{ page_num }}"
+     aria-roledescription="sortable item"
+     tabindex="0">
     <!-- Page thumbnail -->
     <div class="aspect-[3/4] bg-gray-100 dark:bg-gray-700 overflow-hidden">
         <img src="/api/preview/{{ session_id }}/{{ page_num }}"
-             alt="ページ {{ page_num }}"
+             alt="Page {{ page_num }} preview"
              loading="lazy"
              class="w-full h-full object-contain" />
     </div>
 
     <!-- Bottom overlay with page number -->
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-navy text-white shadow-sm">
+        <span class="inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-sm sm:text-xs font-semibold bg-navy text-white shadow-sm">
             {{ page_num }}
         </span>
     </div>
@@ -21,8 +25,9 @@
             hx-target="#preview-grid"
             hx-swap="innerHTML"
             hx-indicator="#loading"
-            class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-            title="このページを削除">
+            class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 transition-opacity shadow-lg"
+            aria-label="Delete page {{ page_num }}"
+            title="Delete page {{ page_num }}">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>

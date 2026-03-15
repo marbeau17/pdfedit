@@ -15,7 +15,10 @@
             theme: {
                 extend: {
                     colors: {
-                        navy: '#1C3058',
+                        navy: {
+                            DEFAULT: '#1C3058',
+                            600: '#162848',
+                        },
                         gold: '#CFAE70',
                     }
                 }
@@ -59,11 +62,35 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
+
+        /* Focus-visible ring for keyboard navigation */
+        *:focus-visible {
+            outline: 2px solid #CFAE70;
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        /* Touch-friendly minimum target sizes */
+        button, a, [role="button"], input[type="checkbox"], input[type="radio"], select {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        /* Exempt inline text links and icon-only elements that size themselves */
+        .sr-only, [class*="htmx-indicator"] {
+            min-height: unset;
+            min-width: unset;
+        }
     </style>
 
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+
+    <!-- Skip to content (accessibility) -->
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-navy-600 focus:text-white focus:rounded">
+        Skip to content
+    </a>
 
     <!-- Loading indicator bar (top) -->
     <div id="loading"
@@ -72,21 +99,30 @@
     </div>
 
     <!-- Header -->
-    <header class="bg-navy text-white shadow-lg relative z-40">
-        <div class="flex items-center justify-between px-6 py-3">
+    <header role="banner" class="bg-navy text-white shadow-lg relative z-40">
+        <div class="flex items-center justify-between px-4 md:px-6 py-3">
             <div class="flex items-center space-x-3">
+                <!-- Hamburger menu (mobile only) -->
+                <button @click="$dispatch('toggle-sidebar')"
+                        class="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-white rounded-lg hover:bg-white/10 transition-colors"
+                        aria-label="Toggle sidebar menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
                 <svg class="w-8 h-8 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <h1 class="text-xl font-bold tracking-wide">PDF Workshop Pro</h1>
+                <h1 class="text-lg md:text-xl font-bold tracking-wide">PDF Workshop Pro</h1>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 md:space-x-4">
                 {% block header_actions %}{% endblock %}
                 <!-- Dark mode toggle -->
                 <button @click="darkMode = !darkMode; localStorage.setItem('dark', darkMode)"
-                        class="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                        :title="darkMode ? 'Light Mode' : 'Dark Mode'">
+                        class="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+                        :title="darkMode ? 'Light Mode' : 'Dark Mode'"
+                        aria-label="Toggle dark mode">
                     <svg x-show="!darkMode" class="w-5 h-5 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
@@ -100,15 +136,45 @@
         </div>
     </header>
 
-    <!-- Main layout -->
-    <div class="flex flex-1 overflow-hidden">
+    <!-- Main layout with responsive sidebar -->
+    <div x-data="{ sidebarOpen: false }"
+         @toggle-sidebar.window="sidebarOpen = !sidebarOpen"
+         @keydown.escape.window="sidebarOpen = false"
+         class="flex flex-1 overflow-hidden">
+
+        <!-- Backdrop (mobile only) -->
+        <div x-show="sidebarOpen"
+             x-transition:enter="transition-opacity ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="sidebarOpen = false"
+             class="fixed inset-0 bg-black/50 z-40 md:hidden"
+             aria-hidden="true">
+        </div>
+
         <!-- Sidebar -->
-        <aside class="w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0">
+        <aside role="navigation"
+               aria-label="Sidebar navigation"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               class="fixed md:static md:translate-x-0 top-0 left-0 z-50 md:z-auto w-72 h-full md:h-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0 transition-transform duration-300 md:transition-none">
+            <!-- Mobile sidebar close button -->
+            <div class="md:hidden flex justify-end p-2">
+                <button @click="sidebarOpen = false"
+                        class="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        aria-label="Close sidebar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
             {% block sidebar %}{% endblock %}
         </aside>
 
         <!-- Content area -->
-        <main class="flex-1 overflow-y-auto p-6">
+        <main role="main" id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6">
             {% block content %}{% endblock %}
         </main>
     </div>

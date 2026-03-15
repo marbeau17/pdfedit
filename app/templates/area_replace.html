@@ -7,7 +7,7 @@
 
     <!-- Page selector -->
     <div>
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Page</label>
+        <label for="area-page-select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Page</label>
         <select id="area-page-select"
                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                 onchange="loadPageForSelection()">
@@ -19,14 +19,14 @@
 
     <!-- Upload replacement image -->
     <div>
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Image</label>
+        <label for="replacement-image-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Image</label>
         <form hx-post="/api/area/upload-image"
               hx-encoding="multipart/form-data"
               hx-target="#replace-image-status"
               hx-swap="innerHTML"
               hx-indicator="#loading">
             <input type="hidden" name="session_id" value="{{ session_id }}" />
-            <input type="file" name="image" accept="image/*"
+            <input type="file" id="replacement-image-input" name="image" accept="image/*"
                    class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100 dark:file:bg-navy-900 dark:file:text-navy-300"
                    onchange="this.closest('form').requestSubmit()" />
         </form>
@@ -34,41 +34,42 @@
     </div>
 
     <!-- Selection coordinates (auto-filled by canvas) -->
-    <div class="space-y-2">
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Selected Area</label>
+    <fieldset class="space-y-2">
+        <legend class="block text-xs font-medium text-gray-700 dark:text-gray-300">Selected Area</legend>
         <div class="grid grid-cols-2 gap-2">
             <div>
-                <label class="text-xs text-gray-500">X</label>
+                <label for="sel-x" class="text-xs text-gray-500">X</label>
                 <input type="number" id="sel-x" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
             <div>
-                <label class="text-xs text-gray-500">Y</label>
+                <label for="sel-y" class="text-xs text-gray-500">Y</label>
                 <input type="number" id="sel-y" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
             <div>
-                <label class="text-xs text-gray-500">Width</label>
+                <label for="sel-w" class="text-xs text-gray-500">Width</label>
                 <input type="number" id="sel-w" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
             <div>
-                <label class="text-xs text-gray-500">Height</label>
+                <label for="sel-h" class="text-xs text-gray-500">Height</label>
                 <input type="number" id="sel-h" value="0" class="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" />
             </div>
         </div>
-    </div>
+    </fieldset>
 
     <!-- Keep aspect ratio -->
-    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+    <label for="keep-aspect" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <input type="checkbox" id="keep-aspect" class="rounded border-gray-300" />
         <span>Keep aspect ratio</span>
     </label>
 
     <!-- Execute replacement -->
     <button onclick="executeReplace()"
+            aria-label="Replace the selected area with the uploaded image"
             class="w-full px-4 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-semibold text-sm transition-colors">
         Replace Area
     </button>
 
-    <div id="area-replace-result" class="mt-2"></div>
+    <div id="area-replace-result" class="mt-2" aria-live="polite"></div>
 
     <!-- Navigation -->
     <hr class="border-gray-200 dark:border-gray-700" />
@@ -85,8 +86,8 @@
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Draw a rectangle on the page to select the replacement area.</p>
 
     <!-- Canvas container -->
-    <div class="relative inline-block border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white shadow-lg">
-        <canvas id="area-canvas" class="cursor-crosshair"></canvas>
+    <div class="relative inline-block border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-auto bg-white shadow-lg w-full" style="-webkit-overflow-scrolling: touch;">
+        <canvas id="area-canvas" class="cursor-crosshair" style="max-width: 100%; height: auto;" role="img" aria-label="Page preview canvas for area selection. Draw a rectangle to select the replacement area."></canvas>
     </div>
 </div>
 {% endblock %}
@@ -130,16 +131,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     canvasEl.addEventListener('mousedown', function(e) {
         const r = canvasEl.getBoundingClientRect();
-        startX = e.clientX - r.left;
-        startY = e.clientY - r.top;
+        const scaleX = canvasEl.width / r.width;
+        const scaleY = canvasEl.height / r.height;
+        startX = (e.clientX - r.left) * scaleX;
+        startY = (e.clientY - r.top) * scaleY;
         isDrawing = true;
     });
 
     canvasEl.addEventListener('mousemove', function(e) {
         if (!isDrawing) return;
         const r = canvasEl.getBoundingClientRect();
-        const curX = e.clientX - r.left;
-        const curY = e.clientY - r.top;
+        const scaleX = canvasEl.width / r.width;
+        const scaleY = canvasEl.height / r.height;
+        const curX = (e.clientX - r.left) * scaleX;
+        const curY = (e.clientY - r.top) * scaleY;
         rectX = Math.min(startX, curX);
         rectY = Math.min(startY, curY);
         rectW = Math.abs(curX - startX);
@@ -151,6 +156,40 @@ document.addEventListener('DOMContentLoaded', function() {
     canvasEl.addEventListener('mouseup', function() {
         isDrawing = false;
     });
+
+    // Touch support for mobile devices
+    canvasEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const r = canvasEl.getBoundingClientRect();
+        const scaleX = canvasEl.width / r.width;
+        const scaleY = canvasEl.height / r.height;
+        startX = (touch.clientX - r.left) * scaleX;
+        startY = (touch.clientY - r.top) * scaleY;
+        isDrawing = true;
+    }, { passive: false });
+
+    canvasEl.addEventListener('touchmove', function(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const r = canvasEl.getBoundingClientRect();
+        const scaleX = canvasEl.width / r.width;
+        const scaleY = canvasEl.height / r.height;
+        const curX = (touch.clientX - r.left) * scaleX;
+        const curY = (touch.clientY - r.top) * scaleY;
+        rectX = Math.min(startX, curX);
+        rectY = Math.min(startY, curY);
+        rectW = Math.abs(curX - startX);
+        rectH = Math.abs(curY - startY);
+        redraw();
+        updateCoords();
+    }, { passive: false });
+
+    canvasEl.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        isDrawing = false;
+    }, { passive: false });
 
     loadPageForSelection();
 });

@@ -10,16 +10,16 @@
 
     <!-- API Key -->
     <div>
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Gemini API Key</label>
-        <input type="password" name="api_key_ai"
+        <label for="api-key-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Gemini API Key</label>
+        <input type="password" id="api-key-input" name="api_key_ai"
                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                placeholder="Enter API key" />
     </div>
 
     <!-- Target Pages -->
     <div>
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Pages</label>
-        <input type="text" name="pages" value="1"
+        <label for="target-pages-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Pages</label>
+        <input type="text" id="target-pages-input" name="pages" value="1"
                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                placeholder="e.g. 1,3-5" />
     </div>
@@ -30,6 +30,7 @@
             hx-target="#ai-workspace"
             hx-swap="innerHTML"
             hx-indicator="#loading"
+            aria-label="Analyze slides with Gemini AI"
             class="w-full px-4 py-3 bg-navy-600 hover:bg-navy-700 text-white rounded-lg font-semibold text-sm transition-colors">
         Analyze Slides
     </button>
@@ -45,10 +46,12 @@
     <!-- Navigation -->
     <div class="space-y-2 pt-2">
         <a href="/editor/{{ session_id }}"
+           aria-label="Navigate back to the PDF editor"
            class="block text-center px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
             Back to Editor
         </a>
         <a href="/api/download/{{ session_id }}"
+           aria-label="Download the edited PDF file"
            class="block text-center px-4 py-2 text-sm bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-medium transition-colors">
             Download PDF
         </a>
@@ -64,17 +67,17 @@
     </div>
 
     <!-- Page thumbnails (mini) -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-2" style="-webkit-overflow-scrolling: touch;" role="list" aria-label="Page thumbnails">
         {% for p in pages %}
-        <div class="flex-shrink-0 w-24 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-gold-400 transition-colors">
-            <img src="/api/preview/{{ session_id }}/{{ p }}" class="w-full" loading="lazy" />
+        <div class="flex-shrink-0 w-24 border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-gold-400 transition-colors" role="listitem">
+            <img src="/api/preview/{{ session_id }}/{{ p }}" class="w-full" loading="lazy" alt="Page {{ p }} thumbnail" />
             <div class="text-center text-xs py-1 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400">P{{ p }}</div>
         </div>
         {% endfor %}
     </div>
 
     <!-- AI Workspace (HTMX target) -->
-    <div id="ai-workspace">
+    <div id="ai-workspace" aria-live="polite">
         <div class="text-center py-16 text-gray-400 dark:text-gray-500">
             <svg class="mx-auto h-16 w-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>

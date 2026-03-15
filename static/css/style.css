@@ -97,3 +97,107 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
+
+/* --------------------------------------------------
+   Accessibility
+   -------------------------------------------------- */
+
+/* Focus visible ring for keyboard navigation */
+*:focus-visible {
+    outline: 2px solid #CFAE70;
+    outline-offset: 2px;
+}
+
+/* Remove outline for mouse clicks */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Skip to content link */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .htmx-indicator {
+        animation: none !important;
+    }
+    .sortable-ghost {
+        transition: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .page-card {
+        border-width: 2px;
+    }
+    button, a {
+        text-decoration-thickness: 2px;
+    }
+}
+
+/* --------------------------------------------------
+   Responsive
+   -------------------------------------------------- */
+
+/* Mobile sidebar overlay */
+@media (max-width: 767px) {
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+    }
+}
+
+/* Touch-friendly targets */
+@media (pointer: coarse) {
+    button, a, input[type="file"], select {
+        min-height: 44px;
+    }
+    .page-card .delete-btn {
+        min-width: 36px;
+        min-height: 36px;
+        opacity: 1;
+    }
+}
+
+/* Print styles */
+@media print {
+    header, aside, footer, .htmx-indicator, #toast-container {
+        display: none !important;
+    }
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+
+/* Canvas responsive */
+#area-canvas {
+    max-width: 100%;
+    height: auto;
+    touch-action: none;
+}
+
+/* Responsive text */
+@media (max-width: 640px) {
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+}

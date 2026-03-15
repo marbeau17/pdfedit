@@ -1,5 +1,7 @@
 """Pages API router for page operations, preview, and download."""
 
+import hashlib
+
 from fastapi import APIRouter, HTTPException, Request, Form, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -116,7 +118,7 @@ async def undo(request: Request, session_id: str = Form(...)):
 
 
 @router.get("/api/preview/{session_id}/{page_num}")
-async def preview_page(session_id: str, page_num: int):
+async def preview_page(session_id: str, page_num: int, request: Request):
     """Get a page thumbnail as a PNG image."""
     pdf_bytes = SessionService.get_pdf(session_id)
     if pdf_bytes is None:
@@ -127,7 +129,23 @@ async def preview_page(session_id: str, page_num: int):
         raise HTTPException(status_code=404, detail="Page number out of range")
 
     img_bytes = PDFService.get_page_thumbnail(pdf_bytes, page_num)
-    return Response(content=img_bytes, media_type="image/png")
+
+    # Generate ETag from content hash
+    etag = hashlib.md5(img_bytes).hexdigest()
+
+    # Check If-None-Match
+    if_none_match = request.headers.get("if-none-match")
+    if if_none_match and if_none_match == etag:
+        return Response(status_code=304)
+
+    return Response(
+        content=img_bytes,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "private, max-age=30",
+            "ETag": etag,
+        },
+    )
 
 
 @router.get("/api/download/{session_id}")

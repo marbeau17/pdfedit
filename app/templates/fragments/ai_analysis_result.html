@@ -1,4 +1,4 @@
-<div class="space-y-4">
+<div class="space-y-4" aria-live="polite">
     <!-- Summary -->
     <div class="rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <h4 class="font-semibold text-sm text-blue-800 dark:text-blue-300 mb-1">Analysis Complete</h4>
@@ -19,6 +19,7 @@
                         hx-vals='{"page_num": {{ item.page_num }}}'
                         hx-target="#ai-status-{{ item.page_num }}"
                         hx-swap="innerHTML"
+                        aria-label="Save XML for page {{ item.page_num }}"
                         class="px-2 py-1 text-xs bg-navy-600 text-white rounded hover:bg-navy-700 transition-colors">
                     Save XML
                 </button>
@@ -28,6 +29,7 @@
                         hx-target="#ai-gen-{{ item.page_num }}"
                         hx-swap="innerHTML"
                         hx-indicator="#loading"
+                        aria-label="Generate image for page {{ item.page_num }}"
                         class="px-2 py-1 text-xs bg-gold-500 text-white rounded hover:bg-gold-600 transition-colors">
                     Generate Image
                 </button>
@@ -36,23 +38,25 @@
                         hx-target="#preview-grid"
                         hx-swap="innerHTML"
                         hx-indicator="#loading"
+                        aria-label="Apply generated content to page {{ item.page_num }} in PDF"
                         class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
                     Apply to PDF
                 </button>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-0">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
             <!-- Original image -->
-            <div class="p-2 border-r border-gray-200 dark:border-gray-700">
+            <div class="p-2 md:border-r border-b md:border-b-0 border-gray-200 dark:border-gray-700">
                 <p class="text-xs text-gray-500 mb-1">Original</p>
                 <img src="/api/preview/{{ session_id }}/{{ item.page_num }}"
-                     class="w-full rounded shadow-sm" loading="lazy" />
+                     class="w-full rounded shadow-sm" loading="lazy" alt="Original page {{ item.page_num }}" />
             </div>
             <!-- XML editor + generated preview -->
             <div class="p-2">
-                <p class="text-xs text-gray-500 mb-1">XML Structure</p>
-                <textarea name="xml_{{ item.page_num }}"
+                <label for="xml-editor-{{ item.page_num }}" class="text-xs text-gray-500 mb-1 block">XML Structure</label>
+                <textarea id="xml-editor-{{ item.page_num }}" name="xml_{{ item.page_num }}"
                           class="w-full h-48 text-xs font-mono bg-gray-900 text-green-400 rounded p-2 border border-gray-700 resize-y"
+                          aria-label="XML structure for page {{ item.page_num }}"
                           >{{ item.xml }}</textarea>
                 <div id="ai-status-{{ item.page_num }}" class="mt-1"></div>
                 <div id="ai-gen-{{ item.page_num }}" class="mt-2"></div>

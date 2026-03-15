@@ -17,15 +17,16 @@
     </div>
 
     <!-- Upload form with drag-and-drop -->
-    <form hx-post="/api/upload" hx-encoding="multipart/form-data" hx-indicator="#loading">
-        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-gold transition-colors cursor-pointer"
+    <form hx-post="/api/upload" hx-encoding="multipart/form-data" hx-indicator="#loading" aria-label="PDFファイルアップロード">
+        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-8 text-center hover:border-gold transition-colors cursor-pointer"
              x-data="{ dragOver: false, fileName: '' }"
              @dragover.prevent="dragOver = true"
              @dragleave="dragOver = false"
              @drop.prevent="dragOver = false; $refs.fileInput.files = $event.dataTransfer.files; fileName = $event.dataTransfer.files[0]?.name || ''; $el.closest('form').requestSubmit()"
              :class="{ 'border-gold bg-yellow-50 dark:bg-yellow-900/20': dragOver }">
 
-            <input type="file" name="pdf" accept=".pdf" x-ref="fileInput" class="hidden"
+            <label for="pdf-upload" class="sr-only">PDFファイルを選択</label>
+            <input id="pdf-upload" type="file" name="pdf" accept=".pdf" x-ref="fileInput" class="hidden"
                    @change="fileName = $event.target.files[0]?.name || ''; $el.closest('form').requestSubmit()" />
 
             <!-- Upload icon -->
@@ -37,7 +38,7 @@
             </div>
 
             <button type="button" @click="$refs.fileInput.click()"
-                    class="px-5 py-2.5 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg">
+                    class="px-5 py-2.5 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2">
                 PDFファイルを選択
             </button>
 
@@ -71,7 +72,7 @@
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
         </div>
-        <h2 class="text-3xl font-bold text-navy dark:text-gold mb-3">
+        <h2 class="text-2xl md:text-3xl font-bold text-navy dark:text-gold mb-3">
             PDF Workshop Pro
         </h2>
         <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -83,7 +84,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <!-- Feature 1: PDF Merge -->
-        <a href="/merge" class="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <a href="/merge" role="article" class="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4 group-hover:bg-navy/20 dark:group-hover:bg-gold/20 transition-colors">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -97,7 +98,7 @@
         </a>
 
         <!-- Feature 2: Page Delete -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -111,7 +112,7 @@
         </div>
 
         <!-- Feature 3: Page Reorder -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -125,7 +126,7 @@
         </div>
 
         <!-- Feature 4: File Optimization -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -139,7 +140,7 @@
         </div>
 
         <!-- Feature 5: Watermark Removal -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -153,7 +154,7 @@
         </div>
 
         <!-- Feature 6: Branding Overlay -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -167,7 +168,7 @@
         </div>
 
         <!-- Feature 7: Page Size Unification -->
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <span class="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gold text-navy">New</span>
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +183,7 @@
         </div>
 
         <!-- Feature 8: Area Image Replacement -->
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <span class="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gold text-navy">New</span>
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +198,7 @@
         </div>
 
         <!-- Feature 9: AI Slide Analysis -->
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
+        <div role="article" class="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 p-6 border border-gray-100 dark:border-gray-700">
             <span class="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gold text-navy">New</span>
             <div class="w-12 h-12 rounded-lg bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-navy dark:text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">

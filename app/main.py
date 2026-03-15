@@ -6,11 +6,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.routers import upload, pages, merge, optimize, watermark, branding, resize, ai, area_replace
+from app.routers import upload, pages, merge, optimize, watermark, branding, resize, ai, area_replace, health
 from app.services.session_service import SessionService
 from app.services.pdf_service import PDFService
 
@@ -44,6 +45,7 @@ app.include_router(branding.router)
 app.include_router(resize.router)
 app.include_router(ai.router)
 app.include_router(area_replace.router)
+app.include_router(health.router)
 
 
 # Security middleware
@@ -55,6 +57,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
+
+# GZip compression middleware
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # CORS middleware (allow all origins in dev)
 app.add_middleware(
@@ -69,17 +74,19 @@ app.add_middleware(
 # Error handlers
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    return JSONResponse(
+    return templates.TemplateResponse(
+        request, "error.html",
+        {"status_code": 404, "title": "Page Not Found", "message": "The page you're looking for doesn't exist."},
         status_code=404,
-        content={"detail": "Not found"},
     )
 
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
-    return JSONResponse(
+    return templates.TemplateResponse(
+        request, "error.html",
+        {"status_code": 500, "title": "Server Error", "message": "Something went wrong. Please try again."},
         status_code=500,
-        content={"detail": "Internal server error"},
     )
 
 

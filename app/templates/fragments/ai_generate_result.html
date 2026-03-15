@@ -1,10 +1,10 @@
 {% if success and has_image %}
-<div class="rounded p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+<div role="status" aria-live="polite" class="rounded p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
     <p class="text-xs text-green-700 dark:text-green-400 font-medium">Image generated for Page {{ page_num }}</p>
     <p class="text-xs text-gray-500 mt-1">Click "Apply to PDF" to replace the page content.</p>
 </div>
 {% else %}
-<div class="rounded p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+<div role="status" aria-live="polite" class="rounded p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
     <p class="text-xs text-red-700 dark:text-red-400">Generation failed for Page {{ page_num }}. Try editing the XML and regenerating.</p>
 </div>
 {% endif %}

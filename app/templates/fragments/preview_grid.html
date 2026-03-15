@@ -1,4 +1,4 @@
-<div id="sortable-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div id="sortable-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" role="list" aria-label="PDF pages">
     {% for page_num in pages %}
     {% include "fragments/page_card.html" %}
     {% endfor %}
@@ -22,11 +22,13 @@
         if (!grid) return;
 
         new Sortable(grid, {
-            animation: 200,
+            animation: 150,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             handle: '.page-card',
+            delay: 100,
+            delayOnTouchOnly: true,
             onEnd: function(evt) {
                 // Collect new page order from data attributes
                 var items = grid.querySelectorAll('[data-page-num]');
