@@ -37,10 +37,9 @@
     <!-- Alpine.js (defer) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 
-    <!-- PDF.js v2.16.105 (UMD build, synchronous) -->
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+    <!-- PDF.js v2.16.105 (both main + worker served locally for reliability) -->
+    <script src="/static/js/pdf.min.js"></script>
     <script>
-        // Worker served locally to avoid CDN/cache/CORS issues
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/js/pdf.worker.min.js';
     </script>
 
