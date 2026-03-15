@@ -1,80 +1,140 @@
 {% extends "base.html" %}
 
 {% block sidebar %}
-<div class="space-y-4">
+<div class="p-4 space-y-4">
     <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">PDF Merge</h2>
-    <p class="text-sm text-gray-600 dark:text-gray-400">Upload multiple PDFs and merge them in your desired order.</p>
+    <p class="text-sm text-gray-600 dark:text-gray-400">Select multiple PDFs to merge into one.</p>
 
-    <!-- Upload multiple files -->
-    <form hx-post="/api/merge/upload"
-          hx-target="#merge-files"
-          hx-swap="innerHTML"
-          hx-encoding="multipart/form-data"
-          hx-indicator="#loading"
-          aria-label="Upload PDF files for merging"
-          class="space-y-3">
-        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-6 text-center hover:border-gold-500 transition-colors cursor-pointer"
-             x-data="{ dragOver: false, fileCount: 0 }"
-             @dragover.prevent="dragOver = true"
-             @dragleave="dragOver = false"
-             @drop.prevent="dragOver = false; $refs.mergeInput.files = $event.dataTransfer.files; fileCount = $event.dataTransfer.files.length; $el.closest('form').requestSubmit()"
-             :class="{ 'border-gold-500 bg-gold-50 dark:bg-gold-900/20': dragOver }">
-            <label for="merge-pdf-upload" class="sr-only">Select PDF files to merge</label>
-            <input id="merge-pdf-upload" type="file" name="pdfs" accept=".pdf" multiple x-ref="mergeInput" class="hidden"
-                   aria-describedby="merge-upload-hint"
-                   @change="fileCount = $el.files.length; $el.closest('form').requestSubmit()" />
-            <div class="space-y-2">
-                <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                <button type="button" @click="$refs.mergeInput.click()"
-                        class="px-5 py-2.5 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 min-h-[44px]">
-                    Select PDFs
-                </button>
-                <p id="merge-upload-hint" class="text-xs text-gray-500 dark:text-gray-400">or drag & drop multiple files</p>
-            </div>
+    <div x-data="{ files: [], merging: false }">
+        <!-- File selector -->
+        <input type="file" accept=".pdf" multiple x-ref="mergeInput" class="hidden"
+               @change="handleFiles($event.target.files)" />
+        <button @click="$refs.mergeInput.click()"
+                class="w-full px-4 py-3 bg-navy text-white rounded-lg font-medium text-sm">
+            Select PDF Files
+        </button>
+
+        <!-- File list with drag-drop reorder -->
+        <div id="merge-file-list" class="mt-4 space-y-2">
+            <template x-for="(file, index) in files" :key="file.id">
+                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-grab"
+                     :data-index="index"
+                     draggable="true">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="file.name"></p>
+                            <p class="text-xs text-gray-500" x-text="file.pages + ' pages | ' + file.sizeMB + ' MB'"></p>
+                        </div>
+                    </div>
+                    <button @click="removeFile(index)" class="text-red-400 hover:text-red-600 text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">Remove</button>
+                </div>
+            </template>
         </div>
-    </form>
 
-    <!-- Merge button -->
-    <div id="merge-action" class="hidden">
-        <button hx-post="/api/merge/execute"
-                hx-include="#merge-session-ids"
-                hx-indicator="#loading"
-                class="w-full px-4 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 min-h-[44px]">
-            Merge All PDFs
+        <!-- Summary -->
+        <div x-show="files.length > 0" class="mt-3 text-xs text-gray-500">
+            <span x-text="files.length + ' files, ' + files.reduce((s,f) => s + f.pages, 0) + ' total pages'"></span>
+        </div>
+
+        <!-- Merge button -->
+        <button x-show="files.length >= 2" @click="executeMerge()"
+                :disabled="merging"
+                class="w-full mt-4 px-4 py-3 bg-gold text-navy font-bold rounded-lg text-sm disabled:opacity-50">
+            <span x-text="merging ? 'Merging...' : 'Merge All'"></span>
         </button>
     </div>
 
-    <a href="/" class="block text-center text-sm text-navy-500 hover:text-navy-600 dark:text-navy-400 mt-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 rounded min-h-[44px] flex items-center justify-center">
-        &larr; Back to Home
-    </a>
+    <a href="/" class="block text-center text-sm text-navy dark:text-gold mt-4">&larr; Back to Home</a>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <h1 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-6">Merge PDFs</h1>
-
-    <!-- Mobile-only merge button -->
-    <div id="merge-action-mobile" class="hidden md:hidden mb-4">
-        <button hx-post="/api/merge/execute"
-                hx-include="#merge-session-ids"
-                hx-indicator="#loading"
-                class="w-full px-4 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 min-h-[44px]">
-            Merge All PDFs
-        </button>
-    </div>
-
-    <!-- File list (updated by HTMX) -->
-    <div id="merge-files" class="space-y-3">
-        <div class="text-center py-8 md:py-12 text-gray-400 dark:text-gray-500">
-            <svg class="mx-auto h-16 w-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p class="text-lg">No files uploaded yet</p>
-            <p class="text-sm mt-1">Upload PDFs from the sidebar to get started</p>
-        </div>
+<div class="max-w-3xl mx-auto text-center py-16">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Merge PDFs</h1>
+    <p class="text-gray-500 dark:text-gray-400">Select PDF files from the sidebar. All processing happens in your browser.</p>
+    <div class="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400 mt-4">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+        No file size limit. Files stay in your browser.
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let mergeFileData = {}; // Store ArrayBuffers keyed by unique id
+let mergeFileIdCounter = 0;
+
+async function handleFiles(fileList) {
+    const el = document.querySelector('[x-data]');
+    const component = Alpine.$data(el);
+
+    for (const file of fileList) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) continue;
+        try {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const tempDoc = await PDFLib.PDFDocument.load(bytes);
+            const pages = tempDoc.getPageCount();
+            const sizeMB = (bytes.length / 1024 / 1024).toFixed(2);
+            const id = ++mergeFileIdCounter;
+
+            mergeFileData[id] = bytes;
+            component.files.push({ id, name: file.name, pages, sizeMB });
+        } catch (e) {
+            alert('Could not read ' + file.name + ': ' + e.message);
+        }
+    }
+
+    // Initialize Sortable on the file list if not already done
+    initSortable(component);
+}
+
+function removeFile(index) {
+    const el = document.querySelector('[x-data]');
+    const component = Alpine.$data(el);
+    const removed = component.files.splice(index, 1);
+    if (removed.length) {
+        delete mergeFileData[removed[0].id];
+    }
+}
+
+let sortableInstance = null;
+
+function initSortable(component) {
+    if (sortableInstance) return;
+    const listEl = document.getElementById('merge-file-list');
+    if (!listEl) return;
+
+    // Wait a tick for Alpine to render templates
+    setTimeout(() => {
+        sortableInstance = new Sortable(listEl, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            handle: '.cursor-grab',
+            onEnd: function (evt) {
+                const item = component.files.splice(evt.oldIndex, 1)[0];
+                component.files.splice(evt.newIndex, 0, item);
+            }
+        });
+    }, 100);
+}
+
+async function executeMerge() {
+    const el = document.querySelector('[x-data]');
+    const component = Alpine.$data(el);
+    component.merging = true;
+
+    try {
+        const bytesList = component.files.map(f => mergeFileData[f.id]);
+        await PdfEngine.mergeMultiple(bytesList);
+        const fileId = await PdfStorage.saveFile('merged.pdf', PdfEngine.getCurrentBytes());
+        window.location.href = '/editor?fileId=' + fileId;
+    } catch (e) {
+        alert('Merge failed: ' + e.message);
+        component.merging = false;
+    }
+}
+</script>
 {% endblock %}

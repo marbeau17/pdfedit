@@ -37,6 +37,29 @@
     <!-- Alpine.js (defer) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 
+    <!-- PDF.js (ES module) -->
+    <script>
+        // PDF.js loaded as global via CDN
+        var pdfjsLib;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs" type="module"></script>
+    <script type="module">
+        import * as pdfjs from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs';
+        window.pdfjsLib = pdfjs;
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
+    </script>
+
+    <!-- pdf-lib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+    <!-- Dexie.js (IndexedDB wrapper) -->
+    <script src="https://unpkg.com/dexie@4.0.11/dist/dexie.min.js"></script>
+
+    <!-- Custom JS (local-first modules) -->
+    <script src="/static/js/pdf-engine.js"></script>
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/editor.js"></script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/style.css">
 
@@ -116,6 +139,11 @@
                           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 <h1 class="text-lg md:text-xl font-bold tracking-wide">PDF Workshop Pro</h1>
+                <!-- Privacy badge -->
+                <span class="hidden md:inline-flex items-center gap-1 text-xs text-green-300 bg-green-900/30 px-2 py-1 rounded-full">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                    Local Processing
+                </span>
             </div>
             <div class="flex items-center space-x-2 md:space-x-4">
                 {% block header_actions %}{% endblock %}

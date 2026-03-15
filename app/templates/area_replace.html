@@ -5,31 +5,21 @@
     <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">Area Replace</h2>
     <p class="text-sm text-gray-600 dark:text-gray-400">Select an area on a page and replace it with an image.</p>
 
-    <!-- Page selector -->
+    <!-- Page selector (populated dynamically) -->
     <div>
         <label for="area-page-select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Target Page</label>
         <select id="area-page-select"
                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                 onchange="loadPageForSelection()">
-            {% for p in pages %}
-            <option value="{{ p }}">Page {{ p }}</option>
-            {% endfor %}
         </select>
     </div>
 
-    <!-- Upload replacement image -->
+    <!-- Upload replacement image (local only) -->
     <div>
         <label for="replacement-image-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Image</label>
-        <form hx-post="/api/area/upload-image"
-              hx-encoding="multipart/form-data"
-              hx-target="#replace-image-status"
-              hx-swap="innerHTML"
-              hx-indicator="#loading">
-            <input type="hidden" name="session_id" value="{{ session_id }}" />
-            <input type="file" id="replacement-image-input" name="image" accept="image/*"
-                   class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100 dark:file:bg-navy-900 dark:file:text-navy-300"
-                   onchange="this.closest('form').requestSubmit()" />
-        </form>
+        <input type="file" id="replacement-image-input" name="image" accept="image/*"
+               class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100 dark:file:bg-navy-900 dark:file:text-navy-300"
+               onchange="handleImageUpload(this)" />
         <div id="replace-image-status" class="mt-2"></div>
     </div>
 
@@ -73,7 +63,7 @@
 
     <!-- Navigation -->
     <hr class="border-gray-200 dark:border-gray-700" />
-    <a href="/editor/{{ session_id }}"
+    <a href="#" id="back-editor-link"
        class="block text-center text-sm text-navy-500 hover:text-navy-600 dark:text-navy-400">
         &larr; Back to Editor
     </a>
@@ -94,26 +84,81 @@
 
 {% block scripts %}
 <script>
-const sessionId = "{{ session_id }}";
-let canvasEl, ctx, bgImage;
+let currentFileId = null;
+let canvasEl, ctx;
+let renderScale = 1.5;
+let pageWidth = 0, pageHeight = 0;
 let isDrawing = false;
 let startX = 0, startY = 0, rectX = 0, rectY = 0, rectW = 0, rectH = 0;
 
-function loadPageForSelection() {
-    const pageNum = document.getElementById('area-page-select').value;
-    bgImage = new Image();
-    bgImage.onload = function() {
-        canvasEl.width = bgImage.width;
-        canvasEl.height = bgImage.height;
-        redraw();
-    };
-    bgImage.src = `/api/area/page-image/${sessionId}/${pageNum}`;
+// Replacement image stored locally (no server upload)
+let replacementImageBytes = null;
+let replacementImageType = null;
+let replacementImageName = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    canvasEl = document.getElementById('area-canvas');
+    ctx = canvasEl.getContext('2d');
+
+    // Load PDF from IndexedDB
+    const params = new URLSearchParams(window.location.search);
+    currentFileId = parseInt(params.get('fileId'));
+    if (!currentFileId) { window.location.href = '/'; return; }
+
+    const file = await PdfStorage.getFile(currentFileId);
+    if (!file) { window.location.href = '/'; return; }
+
+    await PdfEngine.loadFromBytes(file.bytes, file.name);
+
+    // Update back link
+    document.getElementById('back-editor-link').href = `/editor?fileId=${currentFileId}`;
+
+    // Populate page selector
+    const select = document.getElementById('area-page-select');
+    const pageCount = PdfEngine.getPageCount();
+    for (let i = 1; i <= pageCount; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `Page ${i}`;
+        select.appendChild(opt);
+    }
+
+    // Set up canvas event listeners
+    setupCanvasEvents();
+
+    // Render first page
+    loadPageForSelection();
+});
+
+/**
+ * Render the selected page to the canvas using PdfEngine
+ */
+async function loadPageForSelection() {
+    const pageNum = parseInt(document.getElementById('area-page-select').value);
+    if (!pageNum || !PdfEngine.isLoaded()) return;
+
+    // Get page dimensions at scale 1.0 for PDF coordinate mapping
+    const size = await PdfEngine.getPageSize(pageNum);
+    pageWidth = size.width;
+    pageHeight = size.height;
+
+    // Render at higher scale for better visual quality
+    await PdfEngine.renderPage(pageNum, canvasEl, renderScale);
+
+    // Reset selection
+    rectX = 0; rectY = 0; rectW = 0; rectH = 0;
+    updateCoords();
 }
 
-function redraw() {
-    if (!ctx || !bgImage) return;
-    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-    ctx.drawImage(bgImage, 0, 0);
+/**
+ * Redraw the canvas with the current page and selection overlay
+ */
+async function redrawWithOverlay() {
+    const pageNum = parseInt(document.getElementById('area-page-select').value);
+    if (!pageNum || !PdfEngine.isLoaded()) return;
+
+    await PdfEngine.renderPage(pageNum, canvasEl, renderScale);
+
     if (rectW > 0 && rectH > 0) {
         ctx.strokeStyle = '#EF4444';
         ctx.lineWidth = 2;
@@ -125,10 +170,11 @@ function redraw() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    canvasEl = document.getElementById('area-canvas');
-    ctx = canvasEl.getContext('2d');
-
+/**
+ * Set up mouse and touch event listeners on the canvas
+ */
+function setupCanvasEvents() {
+    // Mouse events
     canvasEl.addEventListener('mousedown', function(e) {
         const r = canvasEl.getBoundingClientRect();
         const scaleX = canvasEl.width / r.width;
@@ -149,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         rectY = Math.min(startY, curY);
         rectW = Math.abs(curX - startX);
         rectH = Math.abs(curY - startY);
-        redraw();
+        redrawWithOverlay();
         updateCoords();
     });
 
@@ -182,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
         rectY = Math.min(startY, curY);
         rectW = Math.abs(curX - startX);
         rectH = Math.abs(curY - startY);
-        redraw();
+        redrawWithOverlay();
         updateCoords();
     }, { passive: false });
 
@@ -190,41 +236,137 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         isDrawing = false;
     }, { passive: false });
-
-    loadPageForSelection();
-});
-
-function updateCoords() {
-    document.getElementById('sel-x').value = Math.round(rectX);
-    document.getElementById('sel-y').value = Math.round(rectY);
-    document.getElementById('sel-w').value = Math.round(rectW);
-    document.getElementById('sel-h').value = Math.round(rectH);
 }
 
-function executeReplace() {
-    const page = document.getElementById('area-page-select').value;
-    const x = document.getElementById('sel-x').value;
-    const y = document.getElementById('sel-y').value;
-    const w = document.getElementById('sel-w').value;
-    const h = document.getElementById('sel-h').value;
-    const keep = document.getElementById('keep-aspect').checked;
+function updateCoords() {
+    // Display coordinates in PDF space (scale 1.0), not canvas space
+    document.getElementById('sel-x').value = Math.round(rectX / renderScale);
+    document.getElementById('sel-y').value = Math.round(rectY / renderScale);
+    document.getElementById('sel-w').value = Math.round(rectW / renderScale);
+    document.getElementById('sel-h').value = Math.round(rectH / renderScale);
+}
 
-    const formData = new FormData();
-    formData.append('session_id', sessionId);
-    formData.append('page', page);
-    formData.append('x', x);
-    formData.append('y', y);
-    formData.append('width', w);
-    formData.append('height', h);
-    formData.append('keep_aspect', keep);
+/**
+ * Handle image upload locally - store bytes in a variable, no server call
+ */
+function handleImageUpload(input) {
+    const file = input.files[0];
+    const statusEl = document.getElementById('replace-image-status');
+    if (!file) {
+        replacementImageBytes = null;
+        replacementImageType = null;
+        replacementImageName = null;
+        statusEl.innerHTML = '';
+        return;
+    }
 
-    htmx.ajax('POST', '/api/area/replace', {
-        target: '#area-replace-result',
-        swap: 'innerHTML',
-        values: Object.fromEntries(formData),
-    }).then(() => {
-        loadPageForSelection();
-    });
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        replacementImageBytes = new Uint8Array(e.target.result);
+        replacementImageName = file.name;
+
+        // Determine image type from file
+        const lowerName = file.name.toLowerCase();
+        if (lowerName.endsWith('.png')) {
+            replacementImageType = 'png';
+        } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+            replacementImageType = 'jpg';
+        } else if (file.type === 'image/png') {
+            replacementImageType = 'png';
+        } else {
+            // Default to jpg for other image types
+            replacementImageType = 'jpg';
+        }
+
+        statusEl.innerHTML = `<span class="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+        </span>`;
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Execute the area replacement using PdfEngine.addImage() - fully client-side
+ */
+async function executeReplace() {
+    const resultEl = document.getElementById('area-replace-result');
+
+    if (!replacementImageBytes) {
+        resultEl.innerHTML = '<p class="text-sm text-red-500">Please upload a replacement image first.</p>';
+        return;
+    }
+
+    const pdfX = parseInt(document.getElementById('sel-x').value);
+    const pdfY = parseInt(document.getElementById('sel-y').value);
+    const pdfW = parseInt(document.getElementById('sel-w').value);
+    const pdfH = parseInt(document.getElementById('sel-h').value);
+
+    if (pdfW <= 0 || pdfH <= 0) {
+        resultEl.innerHTML = '<p class="text-sm text-red-500">Please draw a selection rectangle on the canvas.</p>';
+        return;
+    }
+
+    const pageNum = parseInt(document.getElementById('area-page-select').value);
+    const keepAspect = document.getElementById('keep-aspect').checked;
+
+    try {
+        resultEl.innerHTML = '<p class="text-sm text-gray-500">Replacing...</p>';
+
+        // pdf-lib uses bottom-left origin; canvas uses top-left origin.
+        // Convert canvas Y (top-down) to PDF Y (bottom-up).
+        let imgWidth = pdfW;
+        let imgHeight = pdfH;
+
+        if (keepAspect && replacementImageBytes) {
+            // Load image to get natural dimensions for aspect ratio
+            const blob = new Blob([replacementImageBytes]);
+            const imgUrl = URL.createObjectURL(blob);
+            const tempImg = new Image();
+            await new Promise((resolve, reject) => {
+                tempImg.onload = resolve;
+                tempImg.onerror = reject;
+                tempImg.src = imgUrl;
+            });
+            URL.revokeObjectURL(imgUrl);
+
+            const naturalRatio = tempImg.naturalWidth / tempImg.naturalHeight;
+            const selectionRatio = pdfW / pdfH;
+
+            if (naturalRatio > selectionRatio) {
+                // Image is wider: fit to width, adjust height
+                imgHeight = pdfW / naturalRatio;
+            } else {
+                // Image is taller: fit to height, adjust width
+                imgWidth = pdfH * naturalRatio;
+            }
+        }
+
+        // Convert from top-left origin (canvas) to bottom-left origin (PDF)
+        const pdfYBottomUp = pageHeight - pdfY - imgHeight;
+
+        await PdfEngine.addImage(pageNum, replacementImageBytes, replacementImageType, {
+            x: pdfX,
+            y: pdfYBottomUp,
+            width: imgWidth,
+            height: imgHeight,
+        });
+
+        // Save updated PDF back to IndexedDB
+        await PdfStorage.updateFile(currentFileId, PdfEngine.getCurrentBytes());
+
+        resultEl.innerHTML = '<p class="text-sm text-green-600 dark:text-green-400">Area replaced successfully.</p>';
+
+        // Re-render the page to show the change
+        await loadPageForSelection();
+
+        if (typeof EditorUI !== 'undefined') {
+            EditorUI.showToast('Area replaced', 'success');
+        }
+    } catch (err) {
+        console.error('Area replace error:', err);
+        resultEl.innerHTML = `<p class="text-sm text-red-500">Error: ${err.message}</p>`;
+    }
 }
 </script>
 {% endblock %}
