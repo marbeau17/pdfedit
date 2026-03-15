@@ -299,10 +299,10 @@ const PdfEngine = (() => {
             copyrightText = '\u00a92026 Meets Consulting Inc.',
             pageNumRight = 50,
             pageNumBottom = 30,
-            logoMarginX = 30,
-            logoMarginY = 15,
-            logoWidth = 100,
-            logoHeight = 40,
+            logoMarginX = 20,
+            logoMarginY = 12,
+            logoWidth = 50,
+            logoHeight = 50,
             logoBytes = null,  // Uint8Array of PNG logo
             targetPages = null,
         } = options;
@@ -338,13 +338,22 @@ const PdfEngine = (() => {
             const page = pages[i];
             const { width, height } = page.getSize();
 
-            // Logo (top-right corner)
+            // Logo (top-right corner, aspect ratio preserved)
             if (enableLogo && logoImage && !(pageNum === 1 && skipFirstLogo)) {
-                const lx = width - logoMarginX - logoWidth;
-                const ly = height - logoMarginY - logoHeight;
+                // Calculate dimensions preserving aspect ratio
+                const imgRatio = logoImage.width / logoImage.height;
+                let drawW = logoWidth;
+                let drawH = logoWidth / imgRatio;
+                // If too tall, constrain by height
+                if (drawH > logoHeight) {
+                    drawH = logoHeight;
+                    drawW = logoHeight * imgRatio;
+                }
+                const lx = width - logoMarginX - drawW;
+                const ly = height - logoMarginY - drawH;
                 page.drawImage(logoImage, {
                     x: lx, y: ly,
-                    width: logoWidth, height: logoHeight,
+                    width: drawW, height: drawH,
                 });
             }
 
