@@ -176,10 +176,10 @@ async def run_tests():
             """)
             import json
             defaults = json.loads(result)
-            assert defaults["titleFs"] == 28
-            assert defaults["subtitleFs"] == 18
+            assert defaults["titleFs"] == 36
+            assert defaults["subtitleFs"] == 24
             assert defaults["chartsFs"] == 12
-            assert defaults["notesFs"] == 10
+            assert defaults["notesFs"] == 9
             log("T09: デフォルトフォントサイズ", "PASS")
         except Exception as e:
             log("T09: デフォルトフォントサイズ", "FAIL", str(e))

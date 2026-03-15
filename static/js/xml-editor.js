@@ -11,14 +11,15 @@ const XmlEditor = (() => {
     // Constants
     // -------------------------------------------------------
 
-    const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 54, 60, 72];
+    const FONT_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 54, 60, 72];
 
     const DEFAULT_FONT_SIZES = {
-        title: 28,
-        subtitle: 18,
-        bullet: 14,
+        title: 36,
+        subtitle: 24,
+        bullet: 16,
+        bulletFooter: 10,
         charts: 12,
-        notes: 10,
+        notes: 9,
     };
 
     // Tailwind class constants
@@ -63,7 +64,7 @@ const XmlEditor = (() => {
         const fs = el.getAttribute('font-size');
         if (!fs) return defaultSize;
         const n = parseInt(fs, 10);
-        return (n >= 8 && n <= 72) ? n : defaultSize;
+        return (n >= 6 && n <= 72) ? n : defaultSize;
     }
 
     /**
@@ -75,18 +76,25 @@ const XmlEditor = (() => {
         const content = slide.querySelector('content');
         if (!content) return [];
         const sections = content.querySelectorAll('section');
-        return Array.from(sections).map(sec => ({
-            name: sec.getAttribute('name') || '',
-            bullets: Array.from(sec.querySelectorAll('bullet')).map(b => ({
-                text: b.textContent.trim(),
-                fontSize: (() => {
-                    const fs = b.getAttribute('font-size');
-                    if (!fs) return DEFAULT_FONT_SIZES.bullet;
-                    const n = parseInt(fs, 10);
-                    return (n >= 8 && n <= 72) ? n : DEFAULT_FONT_SIZES.bullet;
-                })(),
-            })),
-        }));
+        return Array.from(sections).map(sec => {
+            const sectionType = sec.getAttribute('type') || 'main';
+            const defaultBulletSize = sectionType === 'footer'
+                ? DEFAULT_FONT_SIZES.bulletFooter
+                : DEFAULT_FONT_SIZES.bullet;
+            return {
+                name: sec.getAttribute('name') || '',
+                type: sectionType,
+                bullets: Array.from(sec.querySelectorAll('bullet')).map(b => ({
+                    text: b.textContent.trim(),
+                    fontSize: (() => {
+                        const fs = b.getAttribute('font-size');
+                        if (!fs) return defaultBulletSize;
+                        const n = parseInt(fs, 10);
+                        return (n >= 6 && n <= 72) ? n : defaultBulletSize;
+                    })(),
+                })),
+            };
+        });
     }
 
     // -------------------------------------------------------
@@ -206,6 +214,7 @@ const XmlEditor = (() => {
      * @returns {string}
      */
     function buildSectionHtml(sectionIndex, pageNum, sectionData) {
+        const sectionType = sectionData.type || 'main';
         const bulletsHtml = sectionData.bullets.map((b, bi) =>
             buildBulletHtml(sectionIndex, bi, b, pageNum)
         ).join('');
@@ -220,6 +229,14 @@ const XmlEditor = (() => {
                        value="${escapeHtml(sectionData.name)}"
                        class="flex-1 px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                        placeholder="セクション名" />
+                <select data-field="sectionType"
+                        data-section-index="${sectionIndex}"
+                        data-page="${pageNum}"
+                        class="text-xs px-1 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                        aria-label="セクション種別">
+                    <option value="main"${sectionType === 'main' ? ' selected' : ''}>本文</option>
+                    <option value="footer"${sectionType === 'footer' ? ' selected' : ''}>フッター</option>
+                </select>
                 <button data-action="deleteSection"
                         data-section-index="${sectionIndex}"
                         class="${CLS_BTN_DELETE}"
@@ -461,7 +478,11 @@ const XmlEditor = (() => {
             if (!nameInput) return;
             processedSections.add(si);
 
-            xml += `    <section name="${escapeXml(nameInput.value)}">\n`;
+            const typeSelect = container.querySelector(
+                `[data-field="sectionType"][data-section-index="${si}"]`
+            );
+            const sectionType = typeSelect ? typeSelect.value : 'main';
+            xml += `    <section name="${escapeXml(nameInput.value)}" type="${escapeXml(sectionType)}">\n`;
 
             const bulletList = container.querySelector(
                 `.bullet-list[data-section-index="${si}"]`
@@ -570,6 +591,7 @@ const XmlEditor = (() => {
 
         const sectionHtml = buildSectionHtml(newIndex, pageNum, {
             name: '新しいセクション',
+            type: 'main',
             bullets: [{ text: '', fontSize: DEFAULT_FONT_SIZES.bullet }],
         });
 
