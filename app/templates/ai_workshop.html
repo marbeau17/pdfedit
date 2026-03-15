@@ -207,12 +207,22 @@ async function analyzeSlides() {
         // 構造化エディタを初期化
         for (const p of pages) {
             try {
-                const cleanXml = XmlEditor.extractXmlFromResponse(analysisData[p].xml);
+                const rawXml = analysisData[p].xml;
+                console.log(`[XML Editor] P${p} raw XML length:`, rawXml ? rawXml.length : 0);
+                const cleanXml = XmlEditor.extractXmlFromResponse(rawXml);
+                console.log(`[XML Editor] P${p} clean XML:`, cleanXml.substring(0, 200));
                 const data = XmlEditor.parseXml(cleanXml);
+                console.log(`[XML Editor] P${p} parsed data:`, JSON.stringify(data).substring(0, 200));
                 XmlEditor.renderEditor(data, `structured-editor-${p}`, p);
+                console.log(`[XML Editor] P${p} editor rendered`);
             } catch (e) {
-                // パース失敗時はXMLタブをデフォルト表示
-                switchTab(p, 'xml');
+                console.error(`[XML Editor] P${p} parse error:`, e.message, e.stack);
+                // パース失敗時は構造化タブにエラー表示 + XMLタブにフォールバック
+                const editorEl = document.getElementById(`structured-editor-${p}`);
+                if (editorEl) {
+                    editorEl.innerHTML = `<div class="p-3 text-xs text-yellow-600 dark:text-yellow-400">XML解析エラー: ${e.message}<br>XMLタブで直接編集してください。</div>`;
+                }
+                try { switchTab(p, 'xml'); } catch (e2) { console.error('switchTab error:', e2); }
             }
         }
 
