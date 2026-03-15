@@ -16,18 +16,46 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">PDFファイルを選択して編集を開始</p>
     </div>
 
+    <!-- Error display -->
+    <div id="upload-error" x-data="{ show: false, msg: '' }" x-show="show" x-transition
+         class="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-3 mb-3 text-sm text-red-700 dark:text-red-300"
+         role="alert">
+        <span x-text="msg"></span>
+    </div>
+
     <!-- Upload form with drag-and-drop -->
-    <form hx-post="/api/upload" hx-encoding="multipart/form-data" hx-indicator="#loading" aria-label="PDFファイルアップロード">
+    <form hx-post="/api/upload" hx-encoding="multipart/form-data" hx-indicator="#loading" aria-label="PDFファイルアップロード"
+          x-data="{
+              dragOver: false,
+              fileName: '',
+              maxSize: 4.5 * 1024 * 1024,
+              validateAndSubmit(files) {
+                  const errEl = document.getElementById('upload-error');
+                  if (!files || files.length === 0) return;
+                  const file = files[0];
+                  this.fileName = file.name;
+                  if (!file.name.toLowerCase().endsWith('.pdf')) {
+                      Alpine.evaluate(errEl, `show = true; msg = 'PDFファイルのみアップロードできます。'`);
+                      return;
+                  }
+                  if (file.size > this.maxSize) {
+                      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                      Alpine.evaluate(errEl, `show = true; msg = 'ファイルサイズ(${sizeMB}MB)が制限(4.5MB)を超えています。PDF最適化ツールで圧縮してから再度お試しください。'`);
+                      return;
+                  }
+                  Alpine.evaluate(errEl, 'show = false');
+                  this.$el.closest('form').requestSubmit();
+              }
+          }">
         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-8 text-center hover:border-gold transition-colors cursor-pointer"
-             x-data="{ dragOver: false, fileName: '' }"
              @dragover.prevent="dragOver = true"
              @dragleave="dragOver = false"
-             @drop.prevent="dragOver = false; $refs.fileInput.files = $event.dataTransfer.files; fileName = $event.dataTransfer.files[0]?.name || ''; $el.closest('form').requestSubmit()"
+             @drop.prevent="dragOver = false; $refs.fileInput.files = $event.dataTransfer.files; validateAndSubmit($event.dataTransfer.files)"
              :class="{ 'border-gold bg-yellow-50 dark:bg-yellow-900/20': dragOver }">
 
             <label for="pdf-upload" class="sr-only">PDFファイルを選択</label>
             <input id="pdf-upload" type="file" name="pdf" accept=".pdf" x-ref="fileInput" class="hidden"
-                   @change="fileName = $event.target.files[0]?.name || ''; $el.closest('form').requestSubmit()" />
+                   @change="validateAndSubmit($event.target.files)" />
 
             <!-- Upload icon -->
             <div class="mx-auto w-16 h-16 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center mb-4">
@@ -52,11 +80,30 @@
         </div>
     </form>
 
+    <!-- HTMX error handler for upload failures -->
+    <script>
+        document.body.addEventListener('htmx:responseError', function(e) {
+            if (e.detail.pathInfo.requestPath === '/api/upload') {
+                const errEl = document.getElementById('upload-error');
+                let msg = 'アップロードに失敗しました。';
+                if (e.detail.xhr.status === 413) {
+                    msg = 'ファイルサイズが大きすぎます（上限4.5MB）。PDFを圧縮してから再度お試しください。';
+                } else if (e.detail.xhr.status === 400) {
+                    msg = '無効なファイルです。PDFファイルのみアップロードできます。';
+                }
+                if (errEl) {
+                    errEl.__x.$data.show = true;
+                    errEl.__x.$data.msg = msg;
+                }
+            }
+        });
+    </script>
+
     <!-- Supported formats note -->
     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
         <p class="text-xs text-gray-500 dark:text-gray-400">
             <span class="font-semibold">対応形式:</span> PDF (.pdf)<br>
-            <span class="font-semibold">最大サイズ:</span> 50MB
+            <span class="font-semibold">最大サイズ:</span> 4.5MB（Vercel制限）
         </p>
     </div>
 </div>

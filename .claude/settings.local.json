@@ -10,7 +10,13 @@
       "Bash(gh repo:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "mcp__claude_ai_Vercel__deploy_to_vercel",
+      "Bash(which vercel:*)",
+      "Bash(vercel:*)",
+      "Bash(curl:*)",
+      "mcp__claude_ai_Vercel__get_runtime_logs"
     ]
   }
 }
