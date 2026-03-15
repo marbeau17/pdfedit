@@ -8,10 +8,7 @@
 // pdf-lib is loaded via CDN: PDFLib global
 
 const PdfEngine = (() => {
-    // Set PDF.js worker
-    if (typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
-    }
+    // PDF.js worker is configured in base.html (v3 legacy build, synchronous load)
 
     let _currentDoc = null;       // PDFLib.PDFDocument (for editing)
     let _currentBytes = null;     // Uint8Array of current PDF
