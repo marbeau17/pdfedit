@@ -20,7 +20,8 @@
       "Bash(echo:*)",
       "Bash(PYTHONIOENCODING=utf-8 python tests/monkey_test.py 2>&1)",
       "Bash(PYTHONIOENCODING=utf-8 python tests/test_e2e_xml_editor.py 2>&1)",
-      "Bash(PYTHONIOENCODING=utf-8 python tests/debug_xml_editor.py 2>&1 | grep -v \"^INFO:\")"
+      "Bash(PYTHONIOENCODING=utf-8 python tests/debug_xml_editor.py 2>&1 | grep -v \"^INFO:\")",
+      "Bash(git status:*)"
     ]
   }
 }
