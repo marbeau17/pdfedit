@@ -130,11 +130,11 @@ async def generate_slide(req: GenerateSlideRequest):
             f"XML:\n{req.xml}"
         )
 
-        # 画像生成: Nano Banana Pro のみ使用
+        # 画像生成: Gemini 3 Pro Image
         response = await asyncio.wait_for(
             asyncio.to_thread(
                 client.models.generate_content,
-                model="models/nano-banana-pro-preview",
+                model="models/gemini-3-pro-image-preview",
                 contents=prompt,
                 config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
             ),
