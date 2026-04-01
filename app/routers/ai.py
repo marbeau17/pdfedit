@@ -16,6 +16,7 @@ class GenerateSlideRequest(BaseModel):
     xml: str
     api_key: str
     number_of_images: int = 4
+    model: str = "nano-banana-pro-preview"
 
 
 class GenerateTextRequest(BaseModel):
@@ -105,9 +106,11 @@ async def vision_analyze(
 
 @router.post("/generate-slide")
 async def generate_slide(req: GenerateSlideRequest):
-    """XMLからスライド画像を生成する（Imagen 4.0 Ultra）。
+    """XMLからスライド画像を生成する（Gemini / Imagen 対応）。
 
-    編集済みXMLをImagen APIに送信し、複数の候補画像を返す。
+    編集済みXMLをAI画像生成APIに送信し、候補画像を返す。
+    Geminiモデル: generate_content API（1画像）
+    Imagenモデル: generate_images API（複数候補）
     """
     if not req.api_key.strip():
         raise HTTPException(400, "APIキーを入力してください")
@@ -133,29 +136,58 @@ async def generate_slide(req: GenerateSlideRequest):
             f"XML:\n{req.xml}"
         )
 
-        # 画像生成: Imagen 4.0 Ultra (複数候補)
-        response = await asyncio.wait_for(
-            asyncio.to_thread(
-                client.models.generate_images,
-                model="imagen-4.0-ultra-generate-001",
-                prompt=prompt,
-                config=types.GenerateImagesConfig(
-                    number_of_images=num_images,
-                    aspect_ratio="16:9",
-                ),
-            ),
-            timeout=240,
-        )
-
         images = []
-        if response.generated_images:
-            for gen_img in response.generated_images:
-                img_bytes = gen_img.image.image_bytes
-                img_base64 = base64.b64encode(img_bytes).decode()
-                images.append({
-                    "image_base64": img_base64,
-                    "mime_type": "image/png",
-                })
+
+        if req.model.startswith("imagen"):
+            # Imagen models: generate_images API (複数候補)
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    client.models.generate_images,
+                    model=req.model,
+                    prompt=prompt,
+                    config=types.GenerateImagesConfig(
+                        number_of_images=num_images,
+                        aspect_ratio="16:9",
+                    ),
+                ),
+                timeout=240,
+            )
+
+            if response.generated_images:
+                for gen_img in response.generated_images:
+                    img_bytes = gen_img.image.image_bytes
+                    img_base64 = base64.b64encode(img_bytes).decode()
+                    images.append({
+                        "image_base64": img_base64,
+                        "mime_type": "image/png",
+                    })
+        else:
+            # Gemini models: generate_content API (1画像)
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    client.models.generate_content,
+                    model=f"models/{req.model}",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE"],
+                    ),
+                ),
+                timeout=240,
+            )
+
+            if response.candidates:
+                for candidate in response.candidates:
+                    if candidate.content and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if part.inline_data and part.inline_data.data:
+                                img_base64 = base64.b64encode(
+                                    part.inline_data.data
+                                ).decode()
+                                mime_type = part.inline_data.mime_type or "image/png"
+                                images.append({
+                                    "image_base64": img_base64,
+                                    "mime_type": mime_type,
+                                })
 
         if not images:
             raise HTTPException(500, "画像生成に失敗しました。XMLを確認してください。")
