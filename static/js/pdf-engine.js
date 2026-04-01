@@ -514,12 +514,23 @@ const PdfEngine = (() => {
         // Create new page with same dimensions
         const newPage = pdfDoc.insertPage(pageNum - 1, [width, height]);
 
-        // Embed and draw image
+        // Embed image (try requested format, fallback to other)
         let img;
-        if (imageType === 'png') {
-            img = await pdfDoc.embedPng(imageBytes);
-        } else {
-            img = await pdfDoc.embedJpg(imageBytes);
+        try {
+            if (imageType === 'png') {
+                img = await pdfDoc.embedPng(imageBytes);
+            } else {
+                img = await pdfDoc.embedJpg(imageBytes);
+            }
+        } catch (e) {
+            // Format mismatch (e.g. webp data labeled as png) — try the other
+            try {
+                img = imageType === 'png'
+                    ? await pdfDoc.embedJpg(imageBytes)
+                    : await pdfDoc.embedPng(imageBytes);
+            } catch (e2) {
+                throw new Error('画像の埋め込みに失敗しました。形式を確認してください。');
+            }
         }
 
         // Scale image to fit page while maintaining aspect ratio

@@ -465,7 +465,10 @@ async function applySelectedToPage(pageNum) {
         EditorUI.showToast('画像が選択されていません', 'error');
         return;
     }
-    await applyToPage(pageNum, data.genImage, 'image/png');
+    // Use actual mime_type from the selected candidate
+    const selected = data.genCandidates ? data.genCandidates[data.selectedIndex || 0] : null;
+    const mimeType = (selected && selected.mime_type) || 'image/png';
+    await applyToPage(pageNum, data.genImage, mimeType);
 }
 
 async function applyToPage(pageNum, imageBase64, mimeType) {
@@ -475,10 +478,20 @@ async function applyToPage(pageNum, imageBase64, mimeType) {
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-        const imageType = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg' : 'png';
+        // Detect image type from mime or try both formats
+        let imageType = 'png';
+        if (mimeType && (mimeType.includes('jpeg') || mimeType.includes('jpg'))) {
+            imageType = 'jpg';
+        }
 
-        // PDFの該当ページを生成画像で置換
-        await PdfEngine.replacePageWithImage(pageNum, bytes, imageType);
+        // PDFの該当ページを生成画像で置換 (try png first, fallback to jpg)
+        try {
+            await PdfEngine.replacePageWithImage(pageNum, bytes, imageType);
+        } catch (embedErr) {
+            console.warn(`[Apply] ${imageType} embed failed, trying fallback:`, embedErr);
+            const fallbackType = imageType === 'png' ? 'jpg' : 'png';
+            await PdfEngine.replacePageWithImage(pageNum, bytes, fallbackType);
+        }
 
         // IndexedDBに保存
         if (currentFileId) {
@@ -487,7 +500,8 @@ async function applyToPage(pageNum, imageBase64, mimeType) {
 
         EditorUI.showToast(`P${pageNum}: PDFに適用完了`, 'success');
     } catch (e) {
-        EditorUI.showToast('適用エラー: ' + e.message, 'error');
+        console.error('[Apply] error:', e);
+        EditorUI.showToast('適用エラー: ' + (e?.message || String(e)), 'error');
     }
 }
 
