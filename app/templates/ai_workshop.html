@@ -379,7 +379,17 @@ async function applyToPage(pageNum, imageBase64, mimeType) {
 }
 
 function downloadResult() {
-    PdfEngine.download();
+    if (!PdfEngine.isLoaded()) {
+        EditorUI.showToast('PDFが読み込まれていません', 'error');
+        return;
+    }
+    try {
+        PdfEngine.download();
+        EditorUI.showToast('ダウンロード開始', 'success');
+    } catch (e) {
+        console.error('[Download] error:', e);
+        EditorUI.showToast('ダウンロードエラー: ' + e.message, 'error');
+    }
 }
 
 function escapeHtml(text) {

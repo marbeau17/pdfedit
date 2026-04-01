@@ -410,16 +410,30 @@ const PdfEngine = (() => {
             console.error('[PdfEngine] No PDF data to download');
             return;
         }
+        const name = filename || _fileName || 'edited.pdf';
         const blob = new Blob([_currentBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || _fileName || 'edited.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        // Delay revoking so the browser has time to start the download
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        // Detect if running inside a sandboxed iframe (e.g. Vercel toolbar)
+        const inSandboxedIframe = window.self !== window.top;
+
+        if (inSandboxedIframe) {
+            // Sandboxed iframes block anchor downloads; open in new tab instead
+            const newTab = window.open(url, '_blank');
+            if (!newTab) {
+                // Popup blocked — fallback: navigate top frame directly
+                window.top.location.href = url;
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } else {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
     }
 
     /**
