@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 class GenerateSlideRequest(BaseModel):
     xml: str
     api_key: str
+    number_of_images: int = 4
 
 
 class GenerateTextRequest(BaseModel):
@@ -104,15 +105,17 @@ async def vision_analyze(
 
 @router.post("/generate-slide")
 async def generate_slide(req: GenerateSlideRequest):
-    """XMLからスライド画像を生成する。
+    """XMLからスライド画像を生成する（Imagen 4.0 Ultra）。
 
-    編集済みXMLをGemini画像生成APIに送信し、新しいスライド画像を返す。
+    編集済みXMLをImagen APIに送信し、複数の候補画像を返す。
     """
     if not req.api_key.strip():
         raise HTTPException(400, "APIキーを入力してください")
 
     if not req.xml.strip():
         raise HTTPException(400, "XMLが空です")
+
+    num_images = max(1, min(4, req.number_of_images))
 
     try:
         from google import genai
@@ -130,23 +133,34 @@ async def generate_slide(req: GenerateSlideRequest):
             f"XML:\n{req.xml}"
         )
 
-        # 画像生成: Gemini 3 Pro Image
+        # 画像生成: Imagen 4.0 Ultra (複数候補)
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                client.models.generate_content,
-                model="models/gemini-3-pro-image-preview",
-                contents=prompt,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+                client.models.generate_images,
+                model="imagen-4.0-ultra-generate-001",
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=num_images,
+                    aspect_ratio="16:9",
+                ),
             ),
             timeout=240,
         )
-        if response.candidates:
-            for part in response.candidates[0].content.parts:
-                if part.inline_data:
-                    img_base64 = base64.b64encode(part.inline_data.data).decode()
-                    return {"image_base64": img_base64, "mime_type": part.inline_data.mime_type}
 
-        raise HTTPException(500, "画像生成に失敗しました。XMLを確認してください。")
+        images = []
+        if response.generated_images:
+            for gen_img in response.generated_images:
+                img_bytes = gen_img.image.image_bytes
+                img_base64 = base64.b64encode(img_bytes).decode()
+                images.append({
+                    "image_base64": img_base64,
+                    "mime_type": "image/png",
+                })
+
+        if not images:
+            raise HTTPException(500, "画像生成に失敗しました。XMLを確認してください。")
+
+        return {"images": images}
 
     except ImportError:
         raise HTTPException(500, "google-genai ライブラリが利用できません")
