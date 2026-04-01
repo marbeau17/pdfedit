@@ -2,6 +2,7 @@
 
 PDFs are processed client-side. Only page IMAGES are sent here for AI analysis.
 """
+import asyncio
 import base64
 
 from fastapi import APIRouter, HTTPException, Form, UploadFile, File
@@ -129,31 +130,28 @@ async def generate_slide(req: GenerateSlideRequest):
             f"XML:\n{req.xml}"
         )
 
-        # 画像生成: Nano Banana Pro → Gemini 3 Pro のフォールバック
-        generation_models = [
-            "models/nano-banana-pro-preview",
-            "models/gemini-3-pro-preview",
-        ]
-
-        for model_name in generation_models:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
-                )
-                if response.candidates:
-                    for part in response.candidates[0].content.parts:
-                        if part.inline_data:
-                            img_base64 = base64.b64encode(part.inline_data.data).decode()
-                            return {"image_base64": img_base64, "mime_type": part.inline_data.mime_type}
-            except Exception:
-                continue
+        # 画像生成: Nano Banana Pro のみ使用
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                client.models.generate_content,
+                model="models/nano-banana-pro-preview",
+                contents=prompt,
+                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+            ),
+            timeout=240,
+        )
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data:
+                    img_base64 = base64.b64encode(part.inline_data.data).decode()
+                    return {"image_base64": img_base64, "mime_type": part.inline_data.mime_type}
 
         raise HTTPException(500, "画像生成に失敗しました。XMLを確認してください。")
 
     except ImportError:
         raise HTTPException(500, "google-genai ライブラリが利用できません")
+    except asyncio.TimeoutError:
+        raise HTTPException(504, "画像生成がタイムアウトしました。再試行してください。")
     except HTTPException:
         raise
     except Exception as e:

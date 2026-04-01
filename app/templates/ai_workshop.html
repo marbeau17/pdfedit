@@ -321,12 +321,28 @@ async function generateSlides() {
             const textarea = document.getElementById(`xml-editor-${p}`);
             if (textarea) textarea.value = data.xml;
 
-            // XMLをサーバー経由でGemini画像生成APIに送信
-            const resp = await fetch('/api/ai/generate-slide', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ xml: data.xml, api_key: apiKey }),
-            });
+            // XMLをサーバー経由でGemini画像生成APIに送信 (timeout 250s)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 250000);
+            let resp;
+            try {
+                resp = await fetch('/api/ai/generate-slide', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ xml: data.xml, api_key: apiKey }),
+                    signal: controller.signal,
+                });
+            } catch (fetchErr) {
+                clearTimeout(timeoutId);
+                const genResult = document.getElementById(`gen-result-${p}`);
+                if (fetchErr.name === 'AbortError') {
+                    genResult.innerHTML = '<p class="text-red-500 text-xs">タイムアウト: 生成に時間がかかりすぎました。再試行してください。</p>';
+                } else {
+                    genResult.innerHTML = `<p class="text-red-500 text-xs">通信エラー: ${fetchErr.message}</p>`;
+                }
+                continue;
+            }
+            clearTimeout(timeoutId);
 
             const genResult = document.getElementById(`gen-result-${p}`);
 
@@ -342,7 +358,7 @@ async function generateSlides() {
                 }
             } else {
                 const err = await resp.json().catch(() => ({}));
-                genResult.innerHTML = `<p class="text-red-500 text-xs">${err.detail || '生成エラー'}</p>`;
+                genResult.innerHTML = `<p class="text-red-500 text-xs">${resp.status === 504 ? 'タイムアウト: 再試行してください' : (err.detail || '生成エラー')}</p>`;
             }
         }
 
