@@ -406,6 +406,10 @@ const PdfEngine = (() => {
      * Download the current PDF
      */
     function download(filename) {
+        if (!_currentBytes || _currentBytes.length === 0) {
+            console.error('[PdfEngine] No PDF data to download');
+            return;
+        }
         const blob = new Blob([_currentBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -414,7 +418,8 @@ const PdfEngine = (() => {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Delay revoking so the browser has time to start the download
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     /**

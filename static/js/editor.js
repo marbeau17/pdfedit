@@ -121,8 +121,17 @@ const EditorUI = (() => {
      * Download the edited PDF
      */
     function downloadPdf() {
-        PdfEngine.download();
-        showToast('ダウンロード開始', 'success');
+        if (!PdfEngine.isLoaded()) {
+            showToast('PDFが読み込まれていません', 'error');
+            return;
+        }
+        try {
+            PdfEngine.download();
+            showToast('ダウンロード開始', 'success');
+        } catch (e) {
+            console.error('[Download] error:', e);
+            showToast('ダウンロードエラー: ' + e.message, 'error');
+        }
     }
 
     // Store uploaded logo bytes
