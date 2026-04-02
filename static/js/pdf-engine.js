@@ -17,6 +17,102 @@ const PdfEngine = (() => {
     let _history = [];            // Undo stack
     const MAX_HISTORY = 15;
 
+    // --- Web Worker infrastructure ---
+    let _worker = null;
+    let _workerReady = false;
+    let _workerHasOffscreen = false;
+    let _workerMsgId = 0;
+    const _workerCallbacks = new Map();  // id -> { resolve, reject }
+
+    /**
+     * Initialize the background Web Worker (best-effort, non-blocking).
+     * If Workers or OffscreenCanvas are unavailable, all async methods
+     * silently fall back to the main thread.
+     */
+    function _initWorker() {
+        if (typeof Worker === 'undefined') {
+            console.log('[PdfEngine] Web Workers not supported; using main thread');
+            return;
+        }
+        try {
+            _worker = new Worker('/static/js/pdf-worker.js');
+            _worker.onmessage = _onWorkerMessage;
+            _worker.onerror = (err) => {
+                console.warn('[PdfEngine] Worker error, falling back to main thread:', err.message);
+                _destroyWorker();
+            };
+        } catch (e) {
+            console.warn('[PdfEngine] Failed to create worker:', e.message);
+            _worker = null;
+        }
+    }
+
+    function _destroyWorker() {
+        if (_worker) {
+            _worker.terminate();
+            _worker = null;
+        }
+        _workerReady = false;
+        // Reject all pending callbacks
+        for (const [, cb] of _workerCallbacks) {
+            cb.reject(new Error('Worker terminated'));
+        }
+        _workerCallbacks.clear();
+    }
+
+    function _onWorkerMessage(e) {
+        const { id, type, result, error } = e.data;
+
+        // Handle the initial "ready" signal
+        if (id === '__ready' && type === 'ready') {
+            _workerReady = true;
+            _workerHasOffscreen = !!(result && result.offscreenCanvas);
+            console.log('[PdfEngine] Worker ready (OffscreenCanvas:', _workerHasOffscreen, ')');
+            return;
+        }
+
+        const cb = _workerCallbacks.get(id);
+        if (!cb) return;
+        _workerCallbacks.delete(id);
+
+        if (error) {
+            cb.reject(new Error(error.message));
+        } else {
+            cb.resolve(result);
+        }
+    }
+
+    /**
+     * Post a message to the worker and return a Promise for the response.
+     * transfer is an optional array of Transferable objects.
+     */
+    function _postToWorker(type, payload, transfer) {
+        return new Promise((resolve, reject) => {
+            if (!_worker || !_workerReady) {
+                return reject(new Error('Worker not available'));
+            }
+            const id = ++_workerMsgId;
+            _workerCallbacks.set(id, { resolve, reject });
+            _worker.postMessage({ id, type, payload }, transfer || []);
+        });
+    }
+
+    /**
+     * Send the current PDF bytes to the worker so it has its own copy.
+     */
+    async function _syncBytesToWorker() {
+        if (!_worker || !_workerReady || !_currentBytes) return;
+        try {
+            const copy = _currentBytes.slice();
+            await _postToWorker('init', { pdfBytes: copy }, [copy.buffer]);
+        } catch (e) {
+            console.warn('[PdfEngine] Failed to sync bytes to worker:', e.message);
+        }
+    }
+
+    // Kick off worker initialization immediately
+    _initWorker();
+
     /**
      * Load a PDF from a File object or ArrayBuffer
      */
@@ -49,6 +145,8 @@ const PdfEngine = (() => {
         }
         const loadingTask = pdfjsLib.getDocument({ data: _currentBytes.slice() });
         _renderDoc = await loadingTask.promise;
+        // Keep the worker in sync whenever the document changes
+        _syncBytesToWorker();
     }
 
     /**
@@ -223,11 +321,38 @@ const PdfEngine = (() => {
     }
 
     /**
-     * Add a blank page
+     * Add a blank page at a specific position
+     * @param {number} afterPageNum - 1-based page number to insert after (0 = beginning, pageCount = end)
+     * @param {number} [width] - page width in points (default: match first page or A4)
+     * @param {number} [height] - page height in points (default: match first page or A4)
+     * @returns {Promise<number>} new page count
      */
-    async function addBlankPage(width = 595, height = 842) {
+    async function addBlankPage(afterPageNum, width, height) {
         const pdfDoc = await PDFLib.PDFDocument.load(_currentBytes);
-        pdfDoc.addPage([width, height]);
+        const pageCount = pdfDoc.getPageCount();
+
+        // Default dimensions: match first page, or A4 if no pages
+        if (width == null || height == null) {
+            if (pageCount > 0) {
+                const firstPage = pdfDoc.getPage(0);
+                const size = firstPage.getSize();
+                width = width ?? size.width;
+                height = height ?? size.height;
+            } else {
+                width = width ?? 595;
+                height = height ?? 842;
+            }
+        }
+
+        // Default position: append at end
+        if (afterPageNum == null) {
+            afterPageNum = pageCount;
+        }
+
+        // Clamp to valid range
+        const insertIndex = Math.max(0, Math.min(afterPageNum, pageCount));
+
+        pdfDoc.insertPage(insertIndex, [width, height]);
         await _applyChanges(pdfDoc);
         return getPageCount();
     }
@@ -560,6 +685,325 @@ const PdfEngine = (() => {
         await _applyChanges(pdfDoc);
     }
 
+    /**
+     * Resize all pages to match the first page's dimensions.
+     * Each page's content is embedded as a form XObject and drawn scaled
+     * onto a new page, preserving aspect ratio with letterboxing.
+     * @returns {{ targetWidth: number, targetHeight: number, resizedCount: number }}
+     */
+    async function resizePages() {
+        const pdfDoc = await PDFLib.PDFDocument.load(_currentBytes);
+        const pageCount = pdfDoc.getPageCount();
+        if (pageCount < 2) {
+            return { targetWidth: 0, targetHeight: 0, resizedCount: 0 };
+        }
+
+        const firstPage = pdfDoc.getPage(0);
+        const { width: targetW, height: targetH } = firstPage.getSize();
+
+        // Build a new document: copy page 1 as-is, then embed+scale the rest
+        const newDoc = await PDFLib.PDFDocument.create();
+
+        // Copy page 1 directly
+        const [p1] = await newDoc.copyPages(pdfDoc, [0]);
+        newDoc.addPage(p1);
+
+        let resizedCount = 0;
+
+        for (let i = 1; i < pageCount; i++) {
+            const srcPage = pdfDoc.getPage(i);
+            const { width: srcW, height: srcH } = srcPage.getSize();
+
+            // If dimensions already match (within 1pt tolerance), just copy
+            if (Math.abs(srcW - targetW) < 1 && Math.abs(srcH - targetH) < 1) {
+                const [copied] = await newDoc.copyPages(pdfDoc, [i]);
+                newDoc.addPage(copied);
+                continue;
+            }
+
+            resizedCount++;
+
+            // Embed the source page as a form XObject
+            const [embedded] = await newDoc.embedPages(pdfDoc, [i]);
+
+            // Create a new page with target dimensions
+            const newPage = newDoc.addPage([targetW, targetH]);
+
+            // Calculate scale to fit, preserving aspect ratio
+            const scaleX = targetW / srcW;
+            const scaleY = targetH / srcH;
+            const scale = Math.min(scaleX, scaleY);
+
+            const drawW = srcW * scale;
+            const drawH = srcH * scale;
+
+            // Center (letterbox)
+            const drawX = (targetW - drawW) / 2;
+            const drawY = (targetH - drawH) / 2;
+
+            newPage.drawPage(embedded, {
+                x: drawX,
+                y: drawY,
+                width: drawW,
+                height: drawH,
+            });
+        }
+
+        await _applyChanges(newDoc);
+        return { targetWidth: targetW, targetHeight: targetH, resizedCount };
+    }
+
+    // --- Worker-backed async methods (with main-thread fallback) ---
+
+    /**
+     * Check if the worker is operational for rendering tasks.
+     * Rendering requires both the worker AND OffscreenCanvas support.
+     */
+    function isWorkerAvailable() {
+        return _worker !== null && _workerReady;
+    }
+
+    function isOffscreenCanvasAvailable() {
+        return isWorkerAvailable() && _workerHasOffscreen;
+    }
+
+    /**
+     * Render a page off the main thread, returning an ImageBitmap.
+     * Falls back to main-thread canvas rendering if the worker is unavailable.
+     *
+     * @param {number} pageNum - 1-based page number
+     * @param {number} [scale=1.0] - render scale
+     * @returns {Promise<{bitmap?: ImageBitmap, dataUrl?: string, width: number, height: number}>}
+     *   Returns bitmap when worker is used, dataUrl when falling back to main thread.
+     */
+    async function renderPageAsync(pageNum, scale = 1.0) {
+        // Try worker path first
+        if (isOffscreenCanvasAvailable()) {
+            try {
+                const res = await _postToWorker('renderPage', { pageNum, scale });
+                return { bitmap: res.bitmap, width: res.width, height: res.height };
+            } catch (e) {
+                console.warn('[PdfEngine] renderPageAsync worker failed, falling back:', e.message);
+            }
+        }
+        // Main-thread fallback: render to an off-screen canvas and return dataUrl
+        const canvas = document.createElement('canvas');
+        await renderPage(pageNum, canvas, scale);
+        return {
+            dataUrl: canvas.toDataURL('image/png'),
+            width: canvas.width,
+            height: canvas.height,
+        };
+    }
+
+    /**
+     * Extract text from all pages using the worker.
+     * Falls back to the existing main-thread extractAllText().
+     *
+     * @returns {Promise<string>} Combined text of all pages.
+     */
+    async function extractAllTextAsync() {
+        if (isWorkerAvailable()) {
+            try {
+                const pages = await _postToWorker('extractAllText', {});
+                return pages
+                    .map(p => `--- Page ${p.pageNum} ---\n${p.text}`)
+                    .join('\n\n');
+            } catch (e) {
+                console.warn('[PdfEngine] extractAllTextAsync worker failed, falling back:', e.message);
+            }
+        }
+        return extractAllText();
+    }
+
+    /**
+     * Generate thumbnails for all pages using the worker.
+     * Falls back to main-thread rendering when OffscreenCanvas is unavailable.
+     *
+     * @param {number} [scale=0.3] - thumbnail scale
+     * @returns {Promise<Array<{pageNum: number, bitmap?: ImageBitmap, dataUrl?: string, width: number, height: number}>>}
+     */
+    async function generateThumbnailsAsync(scale = 0.3) {
+        // Try worker path
+        if (isOffscreenCanvasAvailable()) {
+            try {
+                const results = await _postToWorker('generateThumbnails', { scale });
+                return results;  // Array of { pageNum, bitmap, width, height }
+            } catch (e) {
+                console.warn('[PdfEngine] generateThumbnailsAsync worker failed, falling back:', e.message);
+            }
+        }
+        // Main-thread fallback
+        const count = getPageCount();
+        const results = [];
+        for (let i = 1; i <= count; i++) {
+            const dataUrl = await getPageThumbnail(i, scale);
+            results.push({ pageNum: i, dataUrl });
+        }
+        return results;
+    }
+
+    /**
+     * Export a single page as an image Blob
+     * @param {number} pageNum - 1-based page number
+     * @param {string} format - 'png' or 'jpeg'
+     * @param {number} scale - render scale (default 2 for retina quality)
+     * @returns {Promise<Blob>}
+     */
+    async function exportPageAsImage(pageNum, format = 'png', scale = 2) {
+        const canvas = document.createElement('canvas');
+        await renderPage(pageNum, canvas, scale);
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const quality = format === 'jpeg' ? 0.92 : undefined;
+        return new Promise((resolve) => {
+            canvas.toBlob(resolve, mimeType, quality);
+        });
+    }
+
+    /**
+     * Export all pages as image Blobs (one at a time to avoid OOM)
+     * @param {string} format - 'png' or 'jpeg'
+     * @param {number} scale - render scale
+     * @param {function} onProgress - callback(current, total) for progress updates
+     * @returns {Promise<Blob[]>}
+     */
+    async function exportAllPagesAsImages(format = 'png', scale = 2, onProgress = null) {
+        const count = getPageCount();
+        const blobs = [];
+        for (let i = 1; i <= count; i++) {
+            const blob = await exportPageAsImage(i, format, scale);
+            blobs.push(blob);
+            if (onProgress) onProgress(i, count);
+        }
+        return blobs;
+    }
+
+    /**
+     * Download a single page as an image file
+     * @param {number} pageNum - 1-based page number
+     * @param {string} format - 'png' or 'jpeg'
+     * @param {number} scale - render scale
+     */
+    async function downloadPageAsImage(pageNum, format = 'png', scale = 2) {
+        const blob = await exportPageAsImage(pageNum, format, scale);
+        const ext = format === 'jpeg' ? 'jpg' : 'png';
+        const baseName = _fileName.replace(/\.pdf$/i, '');
+        const name = `${baseName}_page${pageNum}.${ext}`;
+        _triggerBlobDownload(blob, name);
+    }
+
+    /**
+     * Download all pages as a ZIP file containing images
+     * @param {string} format - 'png' or 'jpeg'
+     * @param {number} scale - render scale
+     * @param {function} onProgress - callback(current, total) for progress updates
+     */
+    async function downloadAllPagesAsZip(format = 'png', scale = 2, onProgress = null) {
+        if (typeof JSZip === 'undefined') {
+            throw new Error('JSZip is not loaded');
+        }
+        const zip = new JSZip();
+        const count = getPageCount();
+        const ext = format === 'jpeg' ? 'jpg' : 'png';
+        const baseName = _fileName.replace(/\.pdf$/i, '');
+
+        for (let i = 1; i <= count; i++) {
+            const blob = await exportPageAsImage(i, format, scale);
+            const fileName = `${baseName}_page${String(i).padStart(3, '0')}.${ext}`;
+            zip.file(fileName, blob);
+            if (onProgress) onProgress(i, count);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        _triggerBlobDownload(zipBlob, `${baseName}_images.zip`);
+    }
+
+    /**
+     * Extract specified pages into a new PDF document (non-destructive).
+     * @param {number[]} pageNumbers - 1-based page numbers to extract
+     * @returns {Promise<Uint8Array>} bytes of the new PDF containing only the specified pages
+     */
+    async function extractPages(pageNumbers) {
+        if (!_currentBytes || _currentBytes.length === 0) {
+            throw new Error('PDFが読み込まれていません');
+        }
+        const srcDoc = await PDFLib.PDFDocument.load(_currentBytes);
+        const srcPageCount = srcDoc.getPageCount();
+        const dstDoc = await PDFLib.PDFDocument.create();
+
+        // Filter to valid page numbers and deduplicate while preserving order
+        const seen = new Set();
+        const validPages = [];
+        for (const p of pageNumbers) {
+            if (p >= 1 && p <= srcPageCount && !seen.has(p)) {
+                seen.add(p);
+                validPages.push(p);
+            }
+        }
+
+        if (validPages.length === 0) {
+            throw new Error('有効なページ番号がありません');
+        }
+
+        // Copy pages (convert to 0-based indices)
+        const indices = validPages.map(p => p - 1);
+        const copiedPages = await dstDoc.copyPages(srcDoc, indices);
+        for (const page of copiedPages) {
+            dstDoc.addPage(page);
+        }
+
+        return await dstDoc.save();
+    }
+
+    /**
+     * Extract specified pages and trigger a browser download.
+     * @param {number[]} pageNumbers - 1-based page numbers to extract
+     * @param {string} [filename] - optional filename; auto-generated if omitted
+     */
+    async function downloadExtractedPages(pageNumbers, filename) {
+        const bytes = await extractPages(pageNumbers);
+
+        if (!filename) {
+            const baseName = _fileName.replace(/\.pdf$/i, '');
+            // Build a compact range description
+            const sorted = [...pageNumbers].sort((a, b) => a - b);
+            let rangeStr = '';
+            if (sorted.length <= 5) {
+                rangeStr = sorted.join('-');
+            } else {
+                rangeStr = `${sorted[0]}-${sorted[sorted.length - 1]}`;
+            }
+            filename = `${baseName}_pages_${rangeStr}.pdf`;
+        }
+
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        _triggerBlobDownload(blob, filename);
+    }
+
+    /**
+     * Trigger a browser download from a Blob
+     */
+    function _triggerBlobDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const inSandboxedIframe = window.self !== window.top;
+
+        if (inSandboxedIframe) {
+            const newTab = window.open(url, '_blank');
+            if (!newTab) {
+                window.top.location.href = url;
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } else {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+    }
+
     // Public API
     return {
         loadFromFile,
@@ -590,5 +1034,18 @@ const PdfEngine = (() => {
         renderPageToBlob,
         renderPageToBase64,
         replacePageWithImage,
+        resizePages,
+        exportPageAsImage,
+        exportAllPagesAsImages,
+        downloadPageAsImage,
+        downloadAllPagesAsZip,
+        extractPages,
+        downloadExtractedPages,
+        // Worker-backed async methods
+        renderPageAsync,
+        extractAllTextAsync,
+        generateThumbnailsAsync,
+        isWorkerAvailable,
+        isOffscreenCanvasAvailable,
     };
 })();

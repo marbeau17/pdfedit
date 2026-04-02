@@ -13,6 +13,55 @@ const XmlEditor = (() => {
 
     const FONT_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 54, 60, 72];
 
+    // -------------------------------------------------------
+    // Slide Templates
+    // -------------------------------------------------------
+
+    const SLIDE_TEMPLATES = {
+        'title-slide': {
+            id: 'title-slide',
+            name: 'タイトルスライド',
+            icon: '🎯',
+            description: '大きなタイトルとサブタイトルのみ',
+            xml: '<slide>\n  <title font-size="48">プレゼンテーションタイトル</title>\n  <subtitle font-size="28">サブタイトル・発表者名</subtitle>\n  <content>\n  </content>\n  <charts></charts>\n  <images></images>\n  <layout>中央寄せ、タイトルを大きく表示</layout>\n  <color_scheme>background: #1B2A4A, text: #FFFFFF</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+        'content-slide': {
+            id: 'content-slide',
+            name: 'コンテンツスライド',
+            icon: '📝',
+            description: 'タイトル＋2セクション（各3項目）',
+            xml: '<slide>\n  <title font-size="36">スライドタイトル</title>\n  <subtitle font-size="24"></subtitle>\n  <content>\n    <section name="ポイント1" type="main">\n      <bullet font-size="16">項目1の内容を入力</bullet>\n      <bullet font-size="16">項目2の内容を入力</bullet>\n      <bullet font-size="16">項目3の内容を入力</bullet>\n    </section>\n    <section name="ポイント2" type="main">\n      <bullet font-size="16">項目1の内容を入力</bullet>\n      <bullet font-size="16">項目2の内容を入力</bullet>\n      <bullet font-size="16">項目3の内容を入力</bullet>\n    </section>\n  </content>\n  <charts></charts>\n  <images></images>\n  <layout>タイトル上部、コンテンツは箇条書き</layout>\n  <color_scheme>background: #FFFFFF, text: #1B2A4A</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+        'two-column': {
+            id: 'two-column',
+            name: '2カラム',
+            icon: '▥',
+            description: 'タイトル＋左右2列レイアウト',
+            xml: '<slide>\n  <title font-size="36">比較・2カラムタイトル</title>\n  <subtitle font-size="24"></subtitle>\n  <content>\n    <section name="左カラム" type="main">\n      <bullet font-size="16">左側の項目1</bullet>\n      <bullet font-size="16">左側の項目2</bullet>\n      <bullet font-size="16">左側の項目3</bullet>\n    </section>\n    <section name="右カラム" type="main">\n      <bullet font-size="16">右側の項目1</bullet>\n      <bullet font-size="16">右側の項目2</bullet>\n      <bullet font-size="16">右側の項目3</bullet>\n    </section>\n  </content>\n  <charts></charts>\n  <images></images>\n  <layout>2カラム、左右に均等配置</layout>\n  <color_scheme>background: #FFFFFF, text: #1B2A4A</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+        'with-image': {
+            id: 'with-image',
+            name: '画像付き',
+            icon: '🖼',
+            description: 'タイトル＋1セクション＋画像',
+            xml: '<slide>\n  <title font-size="36">画像付きスライドタイトル</title>\n  <subtitle font-size="24"></subtitle>\n  <content>\n    <section name="説明" type="main">\n      <bullet font-size="16">画像に関する説明文1</bullet>\n      <bullet font-size="16">画像に関する説明文2</bullet>\n      <bullet font-size="16">画像に関する説明文3</bullet>\n    </section>\n  </content>\n  <charts></charts>\n  <images>右側に関連画像を配置（写真・図解など）</images>\n  <layout>左にテキスト、右に画像を配置</layout>\n  <color_scheme>background: #FFFFFF, text: #1B2A4A</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+        'with-chart': {
+            id: 'with-chart',
+            name: 'チャート付き',
+            icon: '📊',
+            description: 'タイトル＋グラフ＋1セクション',
+            xml: '<slide>\n  <title font-size="36">データ分析タイトル</title>\n  <subtitle font-size="24"></subtitle>\n  <content>\n    <section name="要点" type="main">\n      <bullet font-size="16">データから読み取れるポイント1</bullet>\n      <bullet font-size="16">データから読み取れるポイント2</bullet>\n    </section>\n  </content>\n  <charts font-size="12">棒グラフ: 項目A=40%, 項目B=30%, 項目C=20%, 項目D=10%</charts>\n  <images></images>\n  <layout>上部にグラフ、下部に要点を箇条書き</layout>\n  <color_scheme>background: #FFFFFF, text: #1B2A4A</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+        'summary': {
+            id: 'summary',
+            name: 'まとめ',
+            icon: '✅',
+            description: 'タイトル＋3セクション（要点まとめ）',
+            xml: '<slide>\n  <title font-size="36">まとめ</title>\n  <subtitle font-size="24"></subtitle>\n  <content>\n    <section name="要点1" type="main">\n      <bullet font-size="16">最も重要なポイント</bullet>\n    </section>\n    <section name="要点2" type="main">\n      <bullet font-size="16">次に重要なポイント</bullet>\n    </section>\n    <section name="要点3" type="main">\n      <bullet font-size="16">補足・今後のアクション</bullet>\n    </section>\n  </content>\n  <charts></charts>\n  <images></images>\n  <layout>3つの要点を均等に配置、各セクション強調</layout>\n  <color_scheme>background: #1B2A4A, text: #FFFFFF</color_scheme>\n  <notes font-size="9"></notes>\n</slide>'
+        },
+    };
+
     const DEFAULT_FONT_SIZES = {
         title: 36,
         subtitle: 24,
@@ -153,6 +202,115 @@ const XmlEditor = (() => {
         }).join('');
 
         return `<select class="${CLS_FONT_SELECT}" aria-label="フォントサイズ" ${attrParts}>${options}</select>`;
+    }
+
+    // -------------------------------------------------------
+    // Color scheme helpers
+    // -------------------------------------------------------
+
+    /** Default colors for the color picker */
+    const DEFAULT_COLORS = { background: '#FFFFFF', text: '#1C3058', accent: '#CFAE70' };
+
+    /** Japanese/English label mappings for color roles */
+    const COLOR_ROLE_PATTERNS = [
+        { role: 'background', patterns: [/(?:background|bg|背景)[:\s]+([#][0-9a-fA-F]{3,8})/i] },
+        { role: 'text',       patterns: [/(?:text|font|文字|テキスト)[:\s]+([#][0-9a-fA-F]{3,8})/i] },
+        { role: 'accent',     patterns: [/(?:accent|アクセント|強調)[:\s]+([#][0-9a-fA-F]{3,8})/i] },
+    ];
+
+    /**
+     * Parse hex color codes from a color_scheme text string.
+     * Maps common Japanese/English color terms to roles.
+     * @param {string} colorSchemeText
+     * @returns {{background: string, text: string, accent: string}}
+     */
+    function parseColors(colorSchemeText) {
+        const result = { ...DEFAULT_COLORS };
+        if (!colorSchemeText) return result;
+
+        // Try to match labeled colors first
+        for (const { role, patterns } of COLOR_ROLE_PATTERNS) {
+            for (const pat of patterns) {
+                const m = colorSchemeText.match(pat);
+                if (m) {
+                    result[role] = m[1];
+                    break;
+                }
+            }
+        }
+
+        // If no labeled matches were found, try to extract bare hex codes in order
+        const labeledFound = COLOR_ROLE_PATTERNS.some(({ patterns }) =>
+            patterns.some(p => p.test(colorSchemeText))
+        );
+        if (!labeledFound) {
+            const hexMatches = colorSchemeText.match(/#[0-9a-fA-F]{3,8}/g);
+            if (hexMatches) {
+                const roles = ['background', 'text', 'accent'];
+                hexMatches.slice(0, 3).forEach((hex, i) => {
+                    result[roles[i]] = hex;
+                });
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Convert a color object back to a formatted Japanese text string.
+     * @param {{background: string, text: string, accent: string}} colors
+     * @returns {string}
+     */
+    function formatColorScheme(colors) {
+        return `背景: ${colors.background}, テキスト: ${colors.text}, アクセント: ${colors.accent}`;
+    }
+
+    /**
+     * Build HTML for the color scheme field with color pickers and swatches.
+     * @param {string} value - current color_scheme text
+     * @param {number} pageNum
+     * @returns {string}
+     */
+    function buildColorSchemeField(value, pageNum) {
+        const colors = parseColors(value);
+
+        const pickerRow = [
+            { label: '背景', role: 'background', color: colors.background },
+            { label: 'テキスト', role: 'text', color: colors.text },
+            { label: 'アクセント', role: 'accent', color: colors.accent },
+        ].map(({ label, role, color }) => `
+            <div class="flex items-center gap-1">
+                <span style="
+                    display:inline-block;
+                    width:20px;height:20px;
+                    border-radius:50%;
+                    border:2px solid #d1d5db;
+                    background:${escapeHtml(color)};
+                    flex-shrink:0;
+                " data-color-swatch="${role}"></span>
+                <input type="color"
+                       value="${escapeHtml(color)}"
+                       data-color-role="${role}"
+                       data-page="${pageNum}"
+                       class="w-7 h-7 p-0 border-0 rounded cursor-pointer bg-transparent"
+                       title="${escapeHtml(label)}" />
+                <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(label)}</span>
+            </div>
+        `).join('');
+
+        return `<div class="mb-3" data-color-scheme-field>
+            <div class="flex items-center justify-between mb-1">
+                <label class="${CLS_LABEL}">配色</label>
+            </div>
+            <div class="flex items-center gap-3 mb-2 flex-wrap">
+                ${pickerRow}
+            </div>
+            <textarea data-page="${pageNum}"
+                      data-field="colorScheme"
+                      rows="2"
+                      class="${CLS_TEXTAREA}"
+                      placeholder="自由記述も可能です">${escapeHtml(value)}</textarea>
+        </div>`;
     }
 
     // -------------------------------------------------------
@@ -410,8 +568,8 @@ const XmlEditor = (() => {
         // Layout (no font-size)
         html += buildTextareaField('レイアウト', 'layout', data.layout, pageNum, null, null);
 
-        // Color scheme (no font-size)
-        html += buildTextareaField('配色', 'colorScheme', data.colorScheme, pageNum, null, null);
+        // Color scheme (with color pickers)
+        html += buildColorSchemeField(data.colorScheme, pageNum);
 
         // Notes (with font-size)
         html += buildTextareaField('備考', 'notes', data.notes, pageNum, data.notesFontSize, 'notesFontSize');
@@ -427,6 +585,9 @@ const XmlEditor = (() => {
 
         // Attach IME-aware Enter key handling on bullet inputs
         attachBulletKeyHandlers(container, pageNum);
+
+        // Attach color picker handlers
+        attachColorPickerHandlers(container, pageNum);
     }
 
     // -------------------------------------------------------
@@ -829,6 +990,271 @@ const XmlEditor = (() => {
     }
 
     // -------------------------------------------------------
+    // Preview rendering
+    // -------------------------------------------------------
+
+    /**
+     * Collect current slide data from the structured editor DOM.
+     * @param {string} containerId
+     * @param {number} pageNum
+     * @returns {Object} SlideData-like object
+     */
+    function collectSlideData(containerId, pageNum) {
+        const container = document.getElementById(containerId);
+        if (!container) return null;
+
+        const get = (field) => {
+            const el = container.querySelector(`[data-field="${field}"][data-page="${pageNum}"]`);
+            return el ? el.value : '';
+        };
+        const getFs = (field) => {
+            const el = container.querySelector(`[data-field="${field}"][data-page="${pageNum}"]`);
+            return el ? parseInt(el.value, 10) || 0 : 0;
+        };
+
+        const sections = [];
+        const processedSections = new Set();
+        container.querySelectorAll('[data-section-index]').forEach(el => {
+            const si = el.getAttribute('data-section-index');
+            if (processedSections.has(si)) return;
+            const nameInput = container.querySelector(`[data-field="sectionName"][data-section-index="${si}"]`);
+            if (!nameInput) return;
+            processedSections.add(si);
+
+            const typeSelect = container.querySelector(`[data-field="sectionType"][data-section-index="${si}"]`);
+            const sectionType = typeSelect ? typeSelect.value : 'main';
+            const bullets = [];
+            const bulletList = container.querySelector(`.bullet-list[data-section-index="${si}"]`);
+            if (bulletList) {
+                bulletList.querySelectorAll('.bullet-item').forEach(bulletEl => {
+                    const textEl = bulletEl.querySelector('[data-field="bulletText"]');
+                    const fsEl = bulletEl.querySelector('[data-field="bulletFontSize"]');
+                    bullets.push({
+                        text: textEl ? textEl.value : '',
+                        fontSize: fsEl ? parseInt(fsEl.value, 10) || DEFAULT_FONT_SIZES.bullet : DEFAULT_FONT_SIZES.bullet,
+                    });
+                });
+            }
+            sections.push({ name: nameInput.value, type: sectionType, bullets });
+        });
+
+        return {
+            title: get('title'),
+            titleFontSize: getFs('titleFontSize') || DEFAULT_FONT_SIZES.title,
+            subtitle: get('subtitle'),
+            subtitleFontSize: getFs('subtitleFontSize') || DEFAULT_FONT_SIZES.subtitle,
+            sections,
+            charts: get('charts'),
+            chartsFontSize: getFs('chartsFontSize') || DEFAULT_FONT_SIZES.charts,
+            images: get('images'),
+            layout: get('layout'),
+            colorScheme: get('colorScheme'),
+            notes: get('notes'),
+            notesFontSize: getFs('notesFontSize') || DEFAULT_FONT_SIZES.notes,
+        };
+    }
+
+    /**
+     * Parse a color_scheme string to extract background and text colors.
+     * Delegates to parseColors() for consistent parsing.
+     * @param {string} colorScheme
+     * @returns {{bg: string, text: string, accent: string}}
+     */
+    function parseColorScheme(colorScheme) {
+        const parsed = parseColors(colorScheme);
+        return { bg: parsed.background, text: parsed.text, accent: parsed.accent };
+    }
+
+    /**
+     * Render a live HTML preview of slide data into a container.
+     * @param {Object} data - SlideData object
+     * @param {string} containerId - DOM id of the preview container
+     */
+    function renderPreview(data, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || !data) return;
+
+        const colors = parseColorScheme(data.colorScheme);
+
+        // Scale factor: XML font sizes are in pt for a real slide (~960px wide).
+        // Preview container is smaller, so we scale down.
+        const scale = 0.55;
+        const fs = (pt) => Math.max(8, Math.round(pt * scale));
+
+        let html = '';
+
+        // Title
+        if (data.title) {
+            html += `<div style="text-align:center;font-size:${fs(data.titleFontSize)}px;font-weight:bold;margin-bottom:4px;line-height:1.2;">${escapeHtml(data.title)}</div>`;
+        }
+
+        // Subtitle
+        if (data.subtitle) {
+            html += `<div style="text-align:center;font-size:${fs(data.subtitleFontSize)}px;color:#666;margin-bottom:8px;line-height:1.3;">${escapeHtml(data.subtitle)}</div>`;
+        }
+
+        // Sections
+        const mainSections = data.sections.filter(s => s.type !== 'footer');
+        const footerSections = data.sections.filter(s => s.type === 'footer');
+
+        if (mainSections.length > 0) {
+            html += '<div style="flex:1;overflow:hidden;">';
+            mainSections.forEach(sec => {
+                if (sec.name) {
+                    html += `<div style="font-size:${fs(18)}px;font-weight:600;margin:6px 0 2px 0;color:${escapeHtml(colors.text)};">${escapeHtml(sec.name)}</div>`;
+                }
+                sec.bullets.forEach(b => {
+                    if (b.text) {
+                        html += `<div style="font-size:${fs(b.fontSize)}px;padding-left:12px;line-height:1.4;margin-bottom:1px;">&#8226; ${escapeHtml(b.text)}</div>`;
+                    }
+                });
+            });
+            html += '</div>';
+        }
+
+        // Charts placeholder
+        if (data.charts) {
+            html += `<div style="margin:6px 0;padding:6px 8px;background:#f0f0f0;border:1px dashed #ccc;border-radius:4px;font-size:${fs(data.chartsFontSize)}px;color:#888;">&#128202; ${escapeHtml(data.charts)}</div>`;
+        }
+
+        // Images placeholder
+        if (data.images) {
+            html += `<div style="margin:6px 0;padding:6px 8px;background:#f5f0ff;border:1px dashed #c0b0e0;border-radius:4px;font-size:${fs(12)}px;color:#888;">&#128444; ${escapeHtml(data.images)}</div>`;
+        }
+
+        // Footer sections
+        footerSections.forEach(sec => {
+            html += '<div style="margin-top:auto;border-top:1px solid #ddd;padding-top:4px;">';
+            sec.bullets.forEach(b => {
+                if (b.text) {
+                    html += `<div style="font-size:${fs(b.fontSize)}px;color:#999;line-height:1.3;">${escapeHtml(b.text)}</div>`;
+                }
+            });
+            html += '</div>';
+        });
+
+        // Notes (small, at the very bottom)
+        if (data.notes) {
+            html += `<div style="margin-top:auto;font-size:${fs(data.notesFontSize)}px;color:#aaa;border-top:1px dotted #ddd;padding-top:3px;line-height:1.2;">${escapeHtml(data.notes)}</div>`;
+        }
+
+        container.innerHTML = `<div style="
+            width:100%;
+            aspect-ratio:16/9;
+            background:${escapeHtml(colors.bg)};
+            color:${escapeHtml(colors.text)};
+            border:1px solid #e0e0e0;
+            border-radius:6px;
+            padding:12px 16px;
+            box-sizing:border-box;
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            font-family:sans-serif;
+            box-shadow:0 1px 4px rgba(0,0,0,0.08);
+        ">${html}</div>`;
+    }
+
+    // -------------------------------------------------------
+    // Debounced preview wiring
+    // -------------------------------------------------------
+
+    /** Map of containerId -> timeout id for debounce */
+    const _previewTimers = {};
+
+    /**
+     * Set up debounced live preview for a structured editor.
+     * Listens to input/change events and re-renders the preview after 300ms.
+     * @param {string} editorContainerId - e.g. "structured-editor-3"
+     * @param {string} previewContainerId - e.g. "slide-preview-3"
+     * @param {number} pageNum
+     */
+    function setupPreviewSync(editorContainerId, previewContainerId, pageNum) {
+        const editor = document.getElementById(editorContainerId);
+        if (!editor) return;
+
+        // Remove previous listener if exists
+        if (editor._previewInputHandler) {
+            editor.removeEventListener('input', editor._previewInputHandler);
+            editor.removeEventListener('change', editor._previewInputHandler);
+        }
+
+        const handler = () => {
+            clearTimeout(_previewTimers[editorContainerId]);
+            _previewTimers[editorContainerId] = setTimeout(() => {
+                const previewEl = document.getElementById(previewContainerId);
+                if (!previewEl || previewEl.classList.contains('hidden')) return;
+                const slideData = collectSlideData(editorContainerId, pageNum);
+                if (slideData) renderPreview(slideData, previewContainerId);
+            }, 300);
+        };
+
+        editor._previewInputHandler = handler;
+        editor.addEventListener('input', handler);
+        editor.addEventListener('change', handler);
+
+        // Initial render
+        const slideData = collectSlideData(editorContainerId, pageNum);
+        if (slideData) renderPreview(slideData, previewContainerId);
+    }
+
+    // -------------------------------------------------------
+    // Color picker event handling
+    // -------------------------------------------------------
+
+    /**
+     * Attach change listeners on color picker inputs to update textarea and swatches.
+     * @param {HTMLElement} container
+     * @param {number} pageNum
+     */
+    function attachColorPickerHandlers(container, pageNum) {
+        const colorField = container.querySelector('[data-color-scheme-field]');
+        if (!colorField) return;
+
+        const pickers = colorField.querySelectorAll('input[type="color"]');
+        const textarea = colorField.querySelector('[data-field="colorScheme"]');
+        if (!textarea) return;
+
+        pickers.forEach(picker => {
+            picker.addEventListener('input', () => {
+                // Update the corresponding swatch
+                const role = picker.dataset.colorRole;
+                const swatch = colorField.querySelector(`[data-color-swatch="${role}"]`);
+                if (swatch) swatch.style.background = picker.value;
+
+                // Collect current picker values and update textarea
+                const colors = {};
+                colorField.querySelectorAll('input[type="color"]').forEach(p => {
+                    colors[p.dataset.colorRole] = p.value;
+                });
+                textarea.value = formatColorScheme(colors);
+
+                // Trigger input event on textarea so preview sync picks it up
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+
+        // When textarea is edited manually, sync pickers back
+        textarea.addEventListener('input', () => {
+            if (textarea._colorPickerUpdating) return;
+            const colors = parseColors(textarea.value);
+            colorField.querySelectorAll('input[type="color"]').forEach(p => {
+                const role = p.dataset.colorRole;
+                if (colors[role]) {
+                    // Normalize short hex to full hex for input[type=color]
+                    let hex = colors[role];
+                    if (/^#[0-9a-fA-F]{3}$/.test(hex)) {
+                        hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+                    }
+                    p.value = hex;
+                    const swatch = colorField.querySelector(`[data-color-swatch="${role}"]`);
+                    if (swatch) swatch.style.background = hex;
+                }
+            });
+        });
+    }
+
+    // -------------------------------------------------------
     // IME-aware Enter key handling for bullets
     // -------------------------------------------------------
 
@@ -857,6 +1283,53 @@ const XmlEditor = (() => {
     }
 
     // -------------------------------------------------------
+    // Template methods
+    // -------------------------------------------------------
+
+    /**
+     * Get list of available templates with id, name, icon, description.
+     * @returns {Array<{id: string, name: string, icon: string, description: string}>}
+     */
+    function getTemplates() {
+        return Object.values(SLIDE_TEMPLATES).map(t => ({
+            id: t.id,
+            name: t.name,
+            icon: t.icon,
+            description: t.description,
+        }));
+    }
+
+    /**
+     * Apply a template to a structured editor container.
+     * Parses the template XML, renders into the editor, and syncs the XML textarea.
+     * @param {string} templateId
+     * @param {string} containerId - e.g. "structured-editor-3"
+     * @param {number} pageNum
+     * @returns {boolean} true if applied successfully
+     */
+    function applyTemplate(templateId, containerId, pageNum) {
+        const template = SLIDE_TEMPLATES[templateId];
+        if (!template) return false;
+
+        try {
+            const data = parseXml(template.xml);
+            renderEditor(data, containerId, pageNum);
+            setupPreviewSync(containerId, 'slide-preview-' + pageNum, pageNum);
+
+            // Also update the raw XML textarea
+            const xmlTextarea = document.getElementById('xml-editor-' + pageNum);
+            if (xmlTextarea) {
+                xmlTextarea.value = template.xml;
+            }
+
+            return true;
+        } catch (e) {
+            console.error('テンプレート適用エラー:', e);
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------
     // Public API
     // -------------------------------------------------------
 
@@ -866,5 +1339,10 @@ const XmlEditor = (() => {
         collectToXml,
         extractXmlFromResponse,
         initSortable,
+        renderPreview,
+        collectSlideData,
+        setupPreviewSync,
+        getTemplates,
+        applyTemplate,
     };
 })();

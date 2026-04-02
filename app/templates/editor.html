@@ -78,15 +78,30 @@
 
                 <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
-                <!-- Add blank page -->
-                <button onclick="addBlankPage()"
-                        aria-label="空白ページを追加"
-                        class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    <span>空白ページ追加</span>
-                </button>
+                <!-- Add blank page with position selector -->
+                <div class="space-y-2">
+                    <label for="blank-page-position" class="block text-sm text-gray-600 dark:text-gray-400">空白ページ追加</label>
+                    <select id="blank-page-position"
+                            onchange="document.getElementById('blank-page-after-wrap').classList.toggle('hidden', this.value !== 'after')"
+                            class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent">
+                        <option value="beginning">先頭</option>
+                        <option value="end" selected>末尾</option>
+                        <option value="after">指定ページの後</option>
+                    </select>
+                    <div id="blank-page-after-wrap" class="hidden">
+                        <input type="number" id="blank-page-after-num" placeholder="ページ番号" min="1" value="1"
+                               class="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent" />
+                    </div>
+                    <button onclick="handleSidebarInsertBlank()"
+                            aria-label="空白ページを追加"
+                            class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span>空白ページ追加</span>
+                    </button>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">サムネイル間の「+」ボタンからも挿入可能</p>
+                </div>
 
                 <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
@@ -352,6 +367,37 @@
         </div>
     </div>
 
+    <!-- Extract Pages -->
+    <div x-data="{ open: false }" class="border-b border-gray-200 dark:border-gray-700">
+        <button @click="open = !open"
+                :aria-expanded="open.toString()"
+                aria-controls="panel-extract"
+                class="w-full flex justify-between items-center py-3 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <span class="flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                </svg>
+                <span>ページ抽出</span>
+            </span>
+            <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div x-show="open" x-transition id="panel-extract" role="region" aria-label="ページ抽出" class="px-2 pb-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">指定したページを新しいPDFとして抽出します。元のPDFは変更されません。</p>
+            <button onclick="EditorUI.showExtractModal()"
+                    aria-label="ページ抽出ダイアログを開く"
+                    class="w-full px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                </svg>
+                <span>ページ抽出</span>
+            </button>
+        </div>
+    </div>
+
     <!-- AI Workshop -->
     <div class="border-b border-gray-200 dark:border-gray-700">
         <a href="#" id="ai-workshop-link"
@@ -378,24 +424,97 @@
         </a>
     </div>
 
-    <!-- Download -->
-    <div class="border-b border-gray-200 dark:border-gray-700 py-3 px-2">
-        <h2 class="text-sm font-bold text-navy dark:text-gold uppercase tracking-wider flex items-center space-x-2 mb-3">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    <!-- Export -->
+    <div x-data="{ open: true }" class="border-b border-gray-200 dark:border-gray-700">
+        <button @click="open = !open"
+                :aria-expanded="open.toString()"
+                aria-controls="panel-export"
+                class="w-full flex justify-between items-center py-3 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <span class="flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span>エクスポート</span>
+            </span>
+            <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
-            <span>エクスポート</span>
-        </h2>
-        <button onclick="EditorUI.downloadPdf()"
-                aria-label="編集済みPDFをダウンロード"
-                class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg">
-            <svg class="w-5 h-5 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            <span>PDFをダウンロード</span>
         </button>
+        <div x-show="open" x-transition id="panel-export" role="region" aria-label="エクスポート" class="px-2 pb-3">
+            <div class="space-y-3">
+                <!-- PDF Download -->
+                <button onclick="EditorUI.downloadPdf()"
+                        aria-label="編集済みPDFをダウンロード"
+                        class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg">
+                    <svg class="w-5 h-5 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <span>PDFとしてダウンロード</span>
+                </button>
+
+                <div class="border-t border-gray-200 dark:border-gray-700"></div>
+
+                <!-- Image export options -->
+                <div class="space-y-2">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-400">画像エクスポート設定</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="export-format" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">形式</label>
+                            <select id="export-format"
+                                    class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent">
+                                <option value="png">PNG (高品質)</option>
+                                <option value="jpeg">JPEG (軽量)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="export-scale" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">解像度</label>
+                            <select id="export-scale"
+                                    class="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent">
+                                <option value="1">1x (標準)</option>
+                                <option value="2" selected>2x (高解像度)</option>
+                                <option value="3">3x (超高解像度)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export current page as image -->
+                <button onclick="EditorUI.exportCurrentPageAsImage()"
+                        aria-label="現在のページを画像で保存"
+                        class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span>現在のページを画像で保存</span>
+                </button>
+
+                <!-- Export all pages as ZIP -->
+                <button onclick="EditorUI.exportAllPagesAsZip()"
+                        id="export-zip-btn"
+                        aria-label="全ページを画像で保存 (ZIP)"
+                        class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                    </svg>
+                    <span>全ページを画像で保存 (ZIP)</span>
+                </button>
+
+                <!-- Progress indicator (hidden by default) -->
+                <div id="export-progress" class="hidden">
+                    <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <span id="export-progress-label">エクスポート中...</span>
+                        <span id="export-progress-count">0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div id="export-progress-bar" class="bg-gold h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Tip -->
@@ -403,6 +522,7 @@
         <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3" role="note">
             <p class="text-xs text-blue-700 dark:text-blue-300">
                 <span class="font-semibold">ヒント:</span> サムネイルをドラッグ＆ドロップしてページを並べ替えできます。
+                <kbd class="mx-0.5 px-1 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-[10px] font-mono">?</kbd> でショートカット一覧を表示。
             </p>
         </div>
     </div>
@@ -418,7 +538,72 @@
     <!-- Section header -->
     <div class="flex items-center justify-between mb-4 md:mb-6">
         <h1 class="text-lg md:text-xl font-bold text-navy dark:text-gold">PDFエディタ</h1>
-        <span id="page-count-badge" class="text-sm text-gray-500 dark:text-gray-400"></span>
+        <div class="flex items-center gap-3">
+            <span id="selection-count-badge" class="hidden text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded"></span>
+            <!-- Print controls -->
+            <div class="print-no-print flex items-center gap-2">
+                <select id="print-mode-select"
+                        class="text-sm px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                        aria-label="印刷モード選択">
+                    <option value="grid">サムネイル一覧</option>
+                    <option value="one-per-page">1ページずつ</option>
+                </select>
+                <button onclick="EditorUI.printPages()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-navy hover:bg-navy-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                        title="印刷"
+                        aria-label="PDFページを印刷">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    <span>印刷</span>
+                </button>
+            </div>
+            <button onclick="EditorUI.showShortcutsHelp()"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="キーボードショートカット (?)"
+                    aria-label="キーボードショートカット一覧を表示">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3C7.03 3 3 6.03 3 9v6c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V9c0-2.97-4.03-6-9-6z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12h.01M12 12h.01M17 12h.01M9 15h6"/>
+                </svg>
+            </button>
+            <span id="page-count-badge" class="text-sm text-gray-500 dark:text-gray-400"></span>
+        </div>
+    </div>
+
+    <!-- Batch operations toolbar (slides in when pages are selected) -->
+    <div id="batch-toolbar"
+         class="sticky top-0 z-20 -translate-y-full opacity-0 pointer-events-none transition-all duration-300 ease-in-out mb-3"
+         role="toolbar" aria-label="一括操作">
+        <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 shadow-md">
+            <span id="batch-count" class="text-sm font-semibold text-yellow-800 dark:text-yellow-200 whitespace-nowrap">選択中: 0 ページ</span>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="EditorUI.batchRotate()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                        aria-label="選択ページを回転">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>回転</span>
+                </button>
+                <button onclick="EditorUI.batchDelete()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                        aria-label="選択ページを削除">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>削除</span>
+                </button>
+                <button onclick="EditorUI.showExtractModal()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                        aria-label="選択ページを抽出">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                    <span>抽出</span>
+                </button>
+                <button id="batch-toggle-all" onclick="EditorUI.handleToggleAll()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                        aria-label="全選択/選択解除">
+                    全選択
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Preview grid container -->
@@ -431,6 +616,159 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
             <p>PDF読み込み中...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Keyboard Shortcuts Help Modal -->
+<div id="shortcuts-help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick="if(event.target===this) EditorUI.hideShortcutsHelp()">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden" role="dialog" aria-modal="true" aria-label="キーボードショートカット">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">キーボードショートカット</h2>
+            <button onclick="EditorUI.hideShortcutsHelp()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1" aria-label="閉じる">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">ファイル操作</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">元に戻す</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Ctrl</kbd>
+                            <span class="text-xs text-gray-400">+</span>
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Z</kbd>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">保存 / ダウンロード</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Ctrl</kbd>
+                            <span class="text-xs text-gray-400">+</span>
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">S</kbd>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">ページ操作</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">選択ページを削除</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Delete</kbd>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">選択ページを回転</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">R</kbd>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">選択 / ナビゲーション</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">前のページ</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">&larr;</kbd>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">次のページ</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">&rarr;</kbd>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">全ページ選択</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Ctrl</kbd>
+                            <span class="text-xs text-gray-400">+</span>
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">A</kbd>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">選択解除</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Esc</kbd>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">マウス操作</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">ページ選択</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">クリック</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">複数選択 (トグル)</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Ctrl</kbd>
+                            <span class="text-xs text-gray-400">+</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">クリック</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">範囲選択</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Shift</kbd>
+                            <span class="text-xs text-gray-400">+</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">クリック</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">その他</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">ショートカット一覧</span>
+                        <kbd class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">?</kbd>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+            <p class="text-xs text-gray-400 dark:text-gray-500 text-center">Mac: Ctrl の代わりに Cmd を使用</p>
+        </div>
+    </div>
+</div>
+
+<!-- Extract Pages Modal -->
+<div id="extract-pages-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick="if(event.target===this) EditorUI.hideExtractModal()">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" role="dialog" aria-modal="true" aria-label="ページ抽出">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">ページ抽出</h2>
+            <button onclick="EditorUI.hideExtractModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1" aria-label="閉じる">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                抽出するページ番号を指定してください。元のPDFは変更されません。
+            </p>
+            <div>
+                <label for="extract-range-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ページ範囲</label>
+                <input type="text" id="extract-range-input" placeholder="例: 1-3,5,7-10"
+                       class="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault(); EditorUI.extractSelectedPages();}" />
+                <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                    カンマ区切り、範囲指定可 (全 <span id="extract-total-pages">--</span> ページ)
+                </p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 flex justify-end gap-3">
+            <button onclick="EditorUI.hideExtractModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                キャンセル
+            </button>
+            <button onclick="EditorUI.extractSelectedPages()"
+                    class="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                抽出してダウンロード
+            </button>
         </div>
     </div>
 </div>
@@ -484,6 +822,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const areaLink = document.getElementById('area-replace-link');
         if (areaLink) areaLink.href = `/area-replace?fileId=${fileId}`;
 
+        // Start auto-save (periodic every 30s + debounced on edits)
+        PdfStorage.startAutoSave(30000);
+
+        // Stop auto-save on page unload
+        window.addEventListener('beforeunload', () => {
+            PdfStorage.stopAutoSave();
+        });
+
     } catch (e) {
         console.error('Failed to load PDF:', e);
         EditorUI.showToast('読み込み失敗: ' + e.message, 'error');
@@ -491,17 +837,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function addBlankPage() {
-    try {
-        await PdfEngine.addBlankPage();
-        await EditorUI.renderThumbnails();
-        EditorUI.updateFileInfo();
-        EditorUI.showToast('空白ページ追加完了', 'success');
-    } catch (e) {
-        EditorUI.showToast('ページ追加失敗: ' + e.message, 'error');
-    }
+    // Legacy: append at end
+    await EditorUI.insertBlankPage(PdfEngine.getPageCount());
 }
 
-// Auto-save to IndexedDB periodically
+function handleSidebarInsertBlank() {
+    const pos = document.getElementById('blank-page-position').value;
+    let afterPageNum;
+    if (pos === 'beginning') {
+        afterPageNum = 0;
+    } else if (pos === 'end') {
+        afterPageNum = PdfEngine.getPageCount();
+    } else {
+        afterPageNum = parseInt(document.getElementById('blank-page-after-num').value) || 1;
+        const total = PdfEngine.getPageCount();
+        if (afterPageNum < 0 || afterPageNum > total) {
+            EditorUI.showToast(`ページ番号は1〜${total}で指定してください`, 'error');
+            return;
+        }
+    }
+    EditorUI.insertBlankPage(afterPageNum);
+}
+
+// Periodic save of file record to IndexedDB (keeps the files table in sync)
 setInterval(async () => {
     if (PdfEngine.isLoaded()) {
         const params = new URLSearchParams(window.location.search);
@@ -510,10 +868,10 @@ setInterval(async () => {
             try {
                 await PdfStorage.updateFile(fileId, PdfEngine.getCurrentBytes());
             } catch (e) {
-                console.warn('Auto-save failed:', e);
+                console.warn('File record save failed:', e);
             }
         }
     }
-}, 30000); // every 30 seconds
+}, 30000);
 </script>
 {% endblock %}

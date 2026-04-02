@@ -63,3 +63,12 @@ class AIGenerateRequest(BaseModel):
     page: int
     xml_content: str
     api_key: str
+
+
+class AnalyzeTextRequest(BaseModel):
+    text: str = Field(..., description="Extracted PDF text to analyze")
+    api_key: str
+    analysis_type: str = Field(
+        "summarize",
+        description="Type of analysis: summarize, improve, translate, extract_data",
+    )

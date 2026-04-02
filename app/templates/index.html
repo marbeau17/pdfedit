@@ -241,7 +241,65 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Auto-save recovery dialog -->
+<div id="recovery-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">前回の作業を復元しますか？</h3>
+        <p id="recovery-detail" class="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+        <div class="flex justify-end space-x-3">
+            <button id="recovery-dismiss" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                破棄する
+            </button>
+            <button id="recovery-restore" class="px-4 py-2 text-sm font-medium text-white bg-navy hover:bg-navy/90 rounded-lg transition-colors shadow-md">
+                復元する
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+// Check for auto-saved data on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const autoSave = await PdfStorage.getAutoSave();
+        if (!autoSave || !autoSave.bytes || autoSave.bytes.length === 0) return;
+
+        const dialog = document.getElementById('recovery-dialog');
+        const detail = document.getElementById('recovery-detail');
+        const restoreBtn = document.getElementById('recovery-restore');
+        const dismissBtn = document.getElementById('recovery-dismiss');
+
+        // Format the last modified date
+        const lastMod = new Date(autoSave.lastModified);
+        const dateStr = lastMod.toLocaleString('ja-JP');
+        detail.textContent = `ファイル: ${autoSave.fileName} (${autoSave.pageCount}ページ) - 最終保存: ${dateStr}`;
+
+        dialog.classList.remove('hidden');
+
+        restoreBtn.addEventListener('click', async () => {
+            dialog.classList.add('hidden');
+            try {
+                // Save recovered data as a new file entry and open the editor
+                const fileId = await PdfStorage.saveFile(autoSave.fileName, autoSave.bytes);
+                await PdfStorage.clearAutoSave();
+                window.location.href = `/editor?fileId=${fileId}`;
+            } catch (e) {
+                console.error('Recovery failed:', e);
+                if (typeof EditorUI !== 'undefined') {
+                    EditorUI.showToast('復元に失敗しました: ' + e.message, 'error');
+                }
+            }
+        });
+
+        dismissBtn.addEventListener('click', async () => {
+            dialog.classList.add('hidden');
+            await PdfStorage.clearAutoSave();
+        });
+    } catch (e) {
+        console.warn('Auto-save recovery check failed:', e);
+    }
+});
+
 async function openFile(file) {
     if (!file) return;
 

@@ -116,6 +116,139 @@ const PdfStorage = (() => {
         return record ? record.value : defaultValue;
     }
 
+    // --- Auto-save functionality ---
+
+    const AUTOSAVE_KEY = 'autosave';
+    let _autoSaveTimer = null;
+    let _debounceTimer = null;
+    let _isDirty = false;
+    let _isSaving = false;
+
+    /**
+     * Mark the document as dirty (has unsaved changes)
+     */
+    function markDirty() {
+        _isDirty = true;
+    }
+
+    /**
+     * Save the current PDF state to IndexedDB as an auto-save entry.
+     * Only saves if a PDF is loaded and dirty.
+     */
+    async function _performAutoSave() {
+        if (_isSaving) return;
+        if (!_isDirty) return;
+        if (typeof PdfEngine === 'undefined' || !PdfEngine.isLoaded()) return;
+
+        _isSaving = true;
+        try {
+            const bytes = PdfEngine.getCurrentBytes();
+            const info = PdfEngine.getFileInfo();
+            await db.settings.put({
+                key: AUTOSAVE_KEY,
+                value: {
+                    bytes: new Uint8Array(bytes),
+                    fileName: info.fileName,
+                    pageCount: info.pageCount,
+                    lastModified: new Date().toISOString(),
+                },
+            });
+            _isDirty = false;
+            _showAutoSaveIndicator();
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
+                console.warn('[AutoSave] Storage quota exceeded. Skipping auto-save.');
+            } else {
+                console.warn('[AutoSave] Failed:', e);
+            }
+        } finally {
+            _isSaving = false;
+        }
+    }
+
+    /**
+     * Show a subtle "自動保存完了" indicator that fades out after 2 seconds
+     */
+    function _showAutoSaveIndicator() {
+        let indicator = document.getElementById('autosave-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'autosave-indicator';
+            indicator.style.cssText = 'position:fixed;bottom:16px;left:16px;background:rgba(34,197,94,0.9);color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.5s;pointer-events:none;';
+            document.body.appendChild(indicator);
+        }
+        indicator.textContent = '自動保存完了';
+        indicator.style.opacity = '1';
+        setTimeout(() => {
+            indicator.style.opacity = '0';
+        }, 2000);
+    }
+
+    /**
+     * Start periodic auto-saving
+     * @param {number} intervalMs - save interval in milliseconds (default 30s)
+     */
+    function startAutoSave(intervalMs = 30000) {
+        stopAutoSave();
+        _autoSaveTimer = setInterval(() => {
+            _performAutoSave();
+        }, intervalMs);
+    }
+
+    /**
+     * Stop periodic auto-saving
+     */
+    function stopAutoSave() {
+        if (_autoSaveTimer) {
+            clearInterval(_autoSaveTimer);
+            _autoSaveTimer = null;
+        }
+        if (_debounceTimer) {
+            clearTimeout(_debounceTimer);
+            _debounceTimer = null;
+        }
+    }
+
+    /**
+     * Trigger a debounced auto-save (500ms debounce).
+     * Call this after every edit operation.
+     */
+    function triggerAutoSave() {
+        _isDirty = true;
+        if (_debounceTimer) {
+            clearTimeout(_debounceTimer);
+        }
+        _debounceTimer = setTimeout(() => {
+            _debounceTimer = null;
+            _performAutoSave();
+        }, 500);
+    }
+
+    /**
+     * Get the auto-saved file data, if any
+     * @returns {object|null} { bytes, fileName, pageCount, lastModified } or null
+     */
+    async function getAutoSave() {
+        try {
+            const record = await db.settings.get(AUTOSAVE_KEY);
+            return record ? record.value : null;
+        } catch (e) {
+            console.warn('[AutoSave] Failed to read:', e);
+            return null;
+        }
+    }
+
+    /**
+     * Clear the auto-saved data
+     */
+    async function clearAutoSave() {
+        try {
+            await db.settings.delete(AUTOSAVE_KEY);
+        } catch (e) {
+            console.warn('[AutoSave] Failed to clear:', e);
+        }
+    }
+
     return {
         saveFile,
         updateFile,
@@ -127,5 +260,12 @@ const PdfStorage = (() => {
         getStorageUsage,
         setSetting,
         getSetting,
+        // Auto-save
+        startAutoSave,
+        stopAutoSave,
+        triggerAutoSave,
+        markDirty,
+        getAutoSave,
+        clearAutoSave,
     };
 })();

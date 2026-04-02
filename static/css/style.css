@@ -37,6 +37,28 @@
 }
 
 /* --------------------------------------------------
+   Insert Blank Page Buttons (between thumbnails)
+   -------------------------------------------------- */
+.insert-blank-btn {
+    min-width: 2rem;
+    min-height: 3rem;
+    align-self: center;
+}
+
+.insert-blank-btn button {
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+#preview-grid:hover .insert-blank-btn button {
+    opacity: 0.35;
+}
+
+#preview-grid .insert-blank-btn:hover button,
+#preview-grid .insert-blank-btn button:focus {
+    opacity: 1 !important;
+}
+
+/* --------------------------------------------------
    Page Card
    -------------------------------------------------- */
 .page-card {
@@ -178,14 +200,142 @@
     }
 }
 
-/* Print styles */
+/* --------------------------------------------------
+   Print Styles
+   -------------------------------------------------- */
 @media print {
-    header, aside, footer, .htmx-indicator, #toast-container {
+    /* Hide all UI chrome */
+    header, aside, footer, nav,
+    .htmx-indicator, #toast-container,
+    #batch-toolbar, #tool-result, #loading,
+    .sidebar-backdrop,
+    [role="toolbar"],
+    #shortcuts-help-modal,
+    #export-progress,
+    .print-no-print,
+    #selection-count-badge,
+    #page-count-badge,
+    .tip-box,
+    button, input, select, label,
+    .batch-select-overlay,
+    .batch-checkbox,
+    .delete-btn,
+    [aria-label="Toggle dark mode"],
+    [aria-label="Toggle sidebar menu"],
+    .sr-only {
         display: none !important;
     }
-    main {
+
+    /* Reset body and layout */
+    html, body {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Remove dark mode in print */
+    .dark, .dark * {
+        background-color: transparent !important;
+        color: black !important;
+    }
+
+    /* Main content area - full width, no constraints */
+    main, #main-content {
         padding: 0 !important;
         margin: 0 !important;
+        overflow: visible !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Flex layout should not constrain */
+    body, body > div, .flex, .flex-1 {
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    /* Section header - show filename only */
+    .flex.items-center.justify-between.mb-4,
+    .flex.items-center.justify-between.mb-4 > div {
+        display: block !important;
+    }
+    .flex.items-center.justify-between.mb-4 h1 {
+        display: none !important;
+    }
+
+    /* ---- Thumbnail Grid Mode (default) ---- */
+    #preview-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+        padding: 8px !important;
+    }
+
+    .page-card {
+        break-inside: avoid;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        box-shadow: none !important;
+        transform: none !important;
+        cursor: default !important;
+        page-break-inside: avoid;
+        overflow: hidden;
+    }
+
+    .page-card .aspect-\[3\/4\] {
+        background: white !important;
+    }
+
+    .page-card img {
+        width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* Page number badge - show in print */
+    .page-card .absolute.bottom-0 {
+        display: block !important;
+        background: rgba(0,0,0,0.6) !important;
+        color: white !important;
+        font-size: 10px !important;
+        padding: 1px 6px !important;
+    }
+
+    /* ---- One Per Page Mode ---- */
+    body.print-one-per-page #preview-grid {
+        display: block !important;
+        padding: 0 !important;
+    }
+
+    body.print-one-per-page .page-card {
+        page-break-after: always;
+        break-after: page;
+        border: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    body.print-one-per-page .page-card:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    body.print-one-per-page .page-card img {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 100vh !important;
+        object-fit: contain !important;
+    }
+
+    body.print-one-per-page .page-card .aspect-\[3\/4\] {
+        aspect-ratio: unset !important;
+        height: auto !important;
     }
 }
 
