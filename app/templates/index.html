@@ -27,7 +27,7 @@
              @drop.prevent="dragOver = false; openFile($event.dataTransfer.files[0])">
 
             <label for="pdf-open" class="sr-only">PDFファイルを選択</label>
-            <input id="pdf-open" type="file" accept=".pdf" x-ref="fileInput" class="hidden"
+            <input id="pdf-open" type="file" accept=".pdf,.ai" x-ref="fileInput" class="hidden"
                    @change="openFile($event.target.files[0])" />
 
             <!-- Folder open icon -->
@@ -68,7 +68,7 @@
     <!-- Supported formats note -->
     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
         <p class="text-xs text-gray-500 dark:text-gray-400">
-            <span class="font-semibold">対応形式:</span> PDF (.pdf)<br>
+            <span class="font-semibold">対応形式:</span> PDF / AI (Illustrator)ファイルに対応 (.pdf, .ai)<br>
             <span class="font-semibold">サイズ制限:</span> なし (ブラウザ内処理)
         </p>
     </div>
@@ -311,8 +311,9 @@ async function openFile(file) {
     alpineData.error = '';
     alpineData.fileName = file.name;
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-        alpineData.error = 'PDFファイルのみ対応しています';
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.pdf') && !lowerName.endsWith('.ai')) {
+        alpineData.error = 'PDF / AI (Illustrator)ファイルのみ対応しています';
         return;
     }
 

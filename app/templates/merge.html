@@ -7,7 +7,7 @@
 
     <div x-data="{ files: [], merging: false }">
         <!-- File selector -->
-        <input type="file" accept=".pdf" multiple x-ref="mergeInput" class="hidden"
+        <input type="file" accept=".pdf,.ai" multiple x-ref="mergeInput" class="hidden"
                @change="handleFiles($event.target.files)" />
         <button @click="$refs.mergeInput.click()"
                 class="w-full px-4 py-3 bg-navy text-white rounded-lg font-medium text-sm">
@@ -72,7 +72,8 @@ async function handleFiles(fileList) {
     const component = Alpine.$data(el);
 
     for (const file of fileList) {
-        if (!file.name.toLowerCase().endsWith('.pdf')) continue;
+        const lname = file.name.toLowerCase();
+        if (!lname.endsWith('.pdf') && !lname.endsWith('.ai')) continue;
         try {
             const bytes = new Uint8Array(await file.arrayBuffer());
             const tempDoc = await PDFLib.PDFDocument.load(bytes);

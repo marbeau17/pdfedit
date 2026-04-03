@@ -254,7 +254,7 @@ async def load_pdf_and_go_to_workshop(page, pdf_path):
     """Load a PDF in the editor, then navigate to the AI Workshop page."""
     # Upload PDF via the home page
     await page.goto(BASE_URL, wait_until="networkidle")
-    file_input = page.locator('input[type="file"][accept=".pdf"]')
+    file_input = page.locator('input[type="file"][accept=".pdf,.ai"]')
     await file_input.set_input_files(pdf_path)
     await page.wait_for_url("**/editor**", timeout=15000)
     await page.wait_for_function(

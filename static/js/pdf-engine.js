@@ -143,8 +143,15 @@ const PdfEngine = (() => {
         if (_renderDoc) {
             _renderDoc.destroy();
         }
-        const loadingTask = pdfjsLib.getDocument({ data: _currentBytes.slice() });
-        _renderDoc = await loadingTask.promise;
+        try {
+            const loadingTask = pdfjsLib.getDocument({ data: _currentBytes.slice() });
+            _renderDoc = await loadingTask.promise;
+        } catch (err) {
+            if (_fileName.toLowerCase().endsWith('.ai')) {
+                throw new Error('このAIファイルはPDF互換モードで保存されていません。');
+            }
+            throw err;
+        }
         // Keep the worker in sync whenever the document changes
         _syncBytesToWorker();
     }
@@ -566,7 +573,12 @@ const PdfEngine = (() => {
             console.error('[PdfEngine] No PDF data to download');
             return;
         }
-        const name = filename || _fileName || 'edited.pdf';
+        let defaultName = _fileName || 'edited.pdf';
+        // Edited AI files are saved as PDF
+        if (defaultName.toLowerCase().endsWith('.ai')) {
+            defaultName = defaultName.slice(0, -3) + '.pdf';
+        }
+        const name = filename || defaultName;
         const blob = new Blob([_currentBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
