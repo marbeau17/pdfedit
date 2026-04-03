@@ -80,7 +80,7 @@ class StartTaskRequest(BaseModel):
     api_key: str
     # vision-analyze fields
     image_base64: Optional[str] = None
-    image_mime: Optional[str] = "image/png"
+    image_mime: Optional[str] = "image/png"  # image/png, image/jpeg, or image/webp
     page_num: Optional[int] = 1
     # generate-slide fields
     xml: Optional[str] = None
@@ -186,10 +186,10 @@ async def _run_vision_analyze(task_id: str, req: StartTaskRequest):
                      message="画像をデコード中...")
 
         image_bytes = base64.b64decode(req.image_base64)
-        if len(image_bytes) > 5 * 1024 * 1024:
+        if len(image_bytes) > 10 * 1024 * 1024:
             _update_task(task_id, status="error", progress=0,
-                         message="画像サイズが大きすぎます（上限5MB）",
-                         error="画像サイズが大きすぎます（上限5MB）")
+                         message="画像サイズが大きすぎます（上限10MB）",
+                         error="画像サイズが大きすぎます（上限10MB）")
             return
 
         content_type = req.image_mime or "image/png"
@@ -377,12 +377,12 @@ async def vision_analyze(
         raise HTTPException(400, "APIキーを入力してください")
 
     image_bytes = await image.read()
-    if len(image_bytes) > 5 * 1024 * 1024:
-        raise HTTPException(413, "画像サイズが大きすぎます（上限5MB）")
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(413, "画像サイズが大きすぎます（上限10MB）")
 
     content_type = image.content_type or "image/png"
-    if content_type not in ("image/png", "image/jpeg"):
-        raise HTTPException(400, "PNGまたはJPEG画像のみ対応しています")
+    if content_type not in ("image/png", "image/jpeg", "image/webp"):
+        raise HTTPException(400, "PNG、JPEG、またはWebP画像のみ対応しています")
 
     try:
         from google import genai

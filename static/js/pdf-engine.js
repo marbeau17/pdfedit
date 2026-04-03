@@ -412,6 +412,37 @@ const PdfEngine = (() => {
     }
 
     /**
+     * Create a new PDF document from an array of images.
+     * Each image becomes a full page.
+     * @param {Array<{bytes: Uint8Array, type: string, width?: number, height?: number}>} imageDataList
+     * @returns {Promise<number>} page count of new document
+     */
+    async function createFromImages(imageDataList) {
+        const pdfDoc = await PDFLib.PDFDocument.create();
+
+        for (const imgData of imageDataList) {
+            let img;
+            if (imgData.type === 'png' || imgData.type === 'image/png') {
+                img = await pdfDoc.embedPng(imgData.bytes);
+            } else {
+                img = await pdfDoc.embedJpg(imgData.bytes);
+            }
+
+            // Create page matching image dimensions (or default to 16:9 slide size)
+            const width = imgData.width || img.width || 960;
+            const height = imgData.height || img.height || 540;
+            const page = pdfDoc.addPage([width, height]);
+            page.drawImage(img, { x: 0, y: 0, width, height });
+        }
+
+        _currentBytes = await pdfDoc.save();
+        _fileName = 'generated_slides.pdf';
+        _history = [];
+        await _rebuildRenderDoc();
+        return getPageCount();
+    }
+
+    /**
      * Add branding overlay (page number + footer text)
      */
     async function addBranding(options = {}) {
@@ -1027,6 +1058,7 @@ const PdfEngine = (() => {
         rotatePage,
         addText,
         addImage,
+        createFromImages,
         addBranding,
         undo,
         download,

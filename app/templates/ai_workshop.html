@@ -15,6 +15,32 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">ブラウザに自動保存されます</p>
     </div>
 
+    <hr class="border-gray-200 dark:border-gray-700" />
+    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">画像から解析</h3>
+    <p class="text-xs text-gray-500 dark:text-gray-400">JPG/PNG/WebP/PSD画像を直接解析できます。</p>
+
+    <!-- ドラッグ&ドロップゾーン -->
+    <div id="image-drop-zone" class="image-drop-zone" role="button" tabindex="0" aria-label="画像ファイルをドロップまたはクリックで選択">
+        <svg class="mx-auto h-8 w-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-xs text-gray-500 dark:text-gray-400">画像をドロップ</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">またはクリックで選択</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG / PNG / WebP / PSD</p>
+    </div>
+
+    <!-- 画像プレビュー -->
+    <div id="image-preview-container" class="flex flex-wrap gap-1.5 mt-2"></div>
+    <div id="image-upload-status" class="sr-only" aria-live="polite"></div>
+
+    <!-- 画像解析ボタン -->
+    <button id="analyze-images-btn" onclick="analyzeUploadedImages()" class="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm transition-colors hidden">
+        画像を解析
+    </button>
+
+    <hr class="border-gray-200 dark:border-gray-700" />
+    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">PDFから解析</h3>
+
     <!-- 対象ページ -->
     <div>
         <label for="ai-pages" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">対象ページ</label>
@@ -160,7 +186,10 @@
 {% block scripts %}
 <script>
 let currentFileId = null;
-let analysisData = {}; // { pageNum: { xml, origImage, genImage } }
+let analysisData = {}; // { pageNum: { xml, origImage, genImage } }  — keys can be numeric ("1") or image-sourced ("img-1")
+
+/** Check whether an analysisData key refers to an uploaded image (vs a PDF page) */
+function isImageKey(key) { return String(key).startsWith('img-'); }
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
@@ -187,6 +216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('gen-model').value = savedModel;
     }
 
+    // 画像ドロップゾーン初期化
+    ImageInput.init('image-drop-zone', 'image-preview-container', updateImageUI);
+
     // サムネイル表示
     const container = document.getElementById('ai-thumbs');
     for (let i = 1; i <= PdfEngine.getPageCount(); i++) {
@@ -197,6 +229,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.appendChild(div);
     }
 });
+
+function updateImageUI() {
+    document.getElementById('analyze-images-btn').classList.toggle('hidden', ImageInput.getCount() === 0);
+}
 
 function showProgress(msg, percent) {
     const el = document.getElementById('ai-progress');
@@ -448,6 +484,162 @@ async function analyzeSlides() {
     }
 }
 
+async function analyzeUploadedImages() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) { alert('APIキーを入力してください'); return; }
+
+    const images = ImageInput.getImages();
+    if (images.length === 0) { alert('画像を1つ以上アップロードしてください'); return; }
+
+    const workspace = document.getElementById('ai-workspace');
+    analysisData = {};
+
+    showProgress('画像を準備中...', 0);
+
+    try {
+        let html = '';
+        for (let i = 0; i < images.length; i++) {
+            const image = images[i];
+            const pageId = `img-${i+1}`;
+            showProgress(`画像 ${i+1}/${images.length} を準備中...`, Math.round((i / images.length) * 10));
+
+            // Convert blob to base64 for SSE task
+            const arrayBuf = await image.blob.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuf);
+            let binaryStr = '';
+            for (let j = 0; j < uint8.length; j++) binaryStr += String.fromCharCode(uint8[j]);
+            const imageBase64 = btoa(binaryStr);
+
+            let result;
+            try {
+                result = await startTaskWithSSE({
+                    task_type: 'vision-analyze',
+                    api_key: apiKey,
+                    image_base64: imageBase64,
+                    image_mime: image.blob.type || 'image/png',
+                    page_num: i + 1,
+                });
+            } catch (sseErr) {
+                // SSEが失敗した場合、従来のエンドポイントにフォールバック
+                console.warn('[SSE] fallback to sync endpoint:', sseErr.message);
+                showProgress(`画像 ${i+1}/${images.length}: フォールバック解析中...`, Math.round(((i + 0.5) / images.length) * 100));
+
+                const formData = new FormData();
+                formData.append('image', image.blob, `image_${i+1}.png`);
+                formData.append('api_key', apiKey);
+                formData.append('page_num', i + 1);
+
+                const resp = await fetch('/api/ai/vision-analyze', { method: 'POST', body: formData });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+                    throw new Error(`画像${i+1}: ${err.detail || 'エラー'}`);
+                }
+                result = await resp.json();
+            }
+
+            analysisData[pageId] = { xml: result.xml, origImage: image.dataUrl, genImage: null };
+
+            // 結果をHTMLに追加
+            html += `
+            <div class="border rounded-lg overflow-hidden dark:border-gray-700 mb-4" id="result-page-${pageId}">
+                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-2 flex justify-between items-center">
+                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">画像 ${i+1}</span>
+                    <span class="text-xs text-green-600 dark:text-green-400">解析完了 ✓</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-0">
+                    <!-- 元画像 -->
+                    <div class="p-3 border-r border-gray-200 dark:border-gray-700">
+                        <p class="text-xs text-gray-500 mb-1 font-medium">元の画像</p>
+                        <img src="${image.dataUrl}" class="w-full rounded shadow-sm" alt="画像${i+1}の元画像" />
+                    </div>
+                    <!-- 構造化XMLエディタ -->
+                    <div class="p-3 border-r border-gray-200 dark:border-gray-700 md:border-b-0 border-b">
+                        <!-- タブ切り替え -->
+                        <div class="flex gap-2 mb-2 border-b border-gray-200 dark:border-gray-700" role="tablist">
+                            <button id="tab-structured-${pageId}" role="tab" aria-selected="true"
+                                    onclick="switchTab('${pageId}', 'structured')"
+                                    class="text-xs px-3 py-1.5 border-b-2 border-gold font-semibold text-navy dark:text-gold">構造化</button>
+                            <button id="tab-xml-${pageId}" role="tab" aria-selected="false"
+                                    onclick="switchTab('${pageId}', 'xml')"
+                                    class="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">XML</button>
+                            <span class="flex-1"></span>
+                            <!-- テンプレート選択ドロップダウン -->
+                            <div class="relative" id="template-dropdown-wrapper-${pageId}">
+                                <button id="template-btn-${pageId}"
+                                        onclick="toggleTemplateDropdown('${pageId}')"
+                                        class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        title="テンプレートから選択">&#9776; テンプレート</button>
+                                <div id="template-dropdown-${pageId}" class="hidden absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50">
+                                    <div class="py-1"></div>
+                                </div>
+                            </div>
+                            <button id="preview-toggle-${pageId}"
+                                    onclick="togglePreview('${pageId}')"
+                                    class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    title="プレビュー表示/非表示">&#9655; プレビュー</button>
+                        </div>
+
+                        <!-- 構造化エディタ -->
+                        <div id="structured-editor-${pageId}" role="tabpanel" class="overflow-y-auto max-h-96" style="scrollbar-width: thin;"></div>
+
+                        <!-- 生XMLエディタ (デフォルト非表示) -->
+                        <div id="xml-container-${pageId}" role="tabpanel" class="hidden">
+                            <textarea id="xml-editor-${pageId}" class="w-full h-64 text-xs font-mono bg-gray-900 text-green-400 rounded p-2 border border-gray-700 resize-y" spellcheck="false">${escapeHtml(result.xml)}</textarea>
+                        </div>
+
+                        <!-- 保存ボタン -->
+                        <button onclick="saveXmlFromEditor('${pageId}')" class="mt-2 px-3 py-1.5 bg-navy text-white rounded text-xs hover:bg-navy/90 w-full">XMLに反映</button>
+
+                        <!-- ライブプレビュー (デフォルト非表示) -->
+                        <div id="slide-preview-${pageId}" class="hidden mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">プレビュー</p>
+                        </div>
+                    </div>
+                    <!-- 生成結果（候補選択） -->
+                    <div class="p-3">
+                        <p class="text-xs text-gray-500 mb-1 font-medium">生成結果（クリックで選択）</p>
+                        <div id="gen-result-${pageId}" class="flex items-center justify-center min-h-[16rem] bg-gray-100 dark:bg-gray-800 rounded text-gray-400 text-sm">
+                            「② スライドを生成」で候補画像が表示されます
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        workspace.innerHTML = html;
+
+        // 構造化エディタを初期化
+        for (let i = 0; i < images.length; i++) {
+            const pageId = `img-${i+1}`;
+            try {
+                const rawXml = analysisData[pageId].xml;
+                console.log(`[XML Editor] ${pageId} raw XML length:`, rawXml ? rawXml.length : 0);
+                const cleanXml = XmlEditor.extractXmlFromResponse(rawXml);
+                console.log(`[XML Editor] ${pageId} clean XML:`, cleanXml.substring(0, 200));
+                const data = XmlEditor.parseXml(cleanXml);
+                console.log(`[XML Editor] ${pageId} parsed data:`, JSON.stringify(data).substring(0, 200));
+                XmlEditor.renderEditor(data, `structured-editor-${pageId}`, pageId);
+                XmlEditor.setupPreviewSync(`structured-editor-${pageId}`, `slide-preview-${pageId}`, pageId);
+                console.log(`[XML Editor] ${pageId} editor rendered`);
+            } catch (e) {
+                console.error(`[XML Editor] ${pageId} parse error:`, e.message, e.stack);
+                const editorEl = document.getElementById(`structured-editor-${pageId}`);
+                if (editorEl) {
+                    editorEl.innerHTML = `<div class="p-3 text-xs text-yellow-600 dark:text-yellow-400">XML解析エラー: ${e.message}<br>XMLタブで直接編集してください。</div>`;
+                }
+                try { switchTab(pageId, 'xml'); } catch (e2) { console.error('switchTab error:', e2); }
+            }
+        }
+
+        document.getElementById('generate-btn').classList.remove('hidden');
+        hideProgress();
+
+    } catch (e) {
+        hideProgress();
+        workspace.innerHTML = `<div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">${e.message}</div>`;
+    }
+}
+
 function togglePreview(pageNum) {
     const previewEl = document.getElementById(`slide-preview-${pageNum}`);
     const toggleBtn = document.getElementById(`preview-toggle-${pageNum}`);
@@ -615,13 +807,18 @@ function formatImageSize(base64Str) {
     return Math.round(bytes / 1024) + ' KB';
 }
 
-function renderCandidates(pageNum, images) {
-    const data = analysisData[pageNum];
+function renderCandidates(key, images) {
+    const data = analysisData[key];
     data.genCandidates = images;
     data.selectedIndex = 0;
     data.genImage = images[0].image_base64;
 
-    const genResult = document.getElementById(`gen-result-${pageNum}`);
+    // Build a JS-safe literal for onclick handlers (quoted string for img-N, bare number otherwise)
+    const keyArg = isImageKey(key) ? `'${key}'` : key;
+    const label = isImageKey(key) ? String(key).toUpperCase() : `P${key}`;
+    const applyLabel = isImageKey(key) ? 'PDFに追加' : 'PDFに適用';
+
+    const genResult = document.getElementById(`gen-result-${key}`);
     const count = images.length;
 
     if (count === 1) {
@@ -630,11 +827,11 @@ function renderCandidates(pageNum, images) {
         const imgSrc = `data:${img.mime_type || 'image/png'};base64,${img.image_base64}`;
         const sizeLabel = formatImageSize(img.image_base64);
         genResult.innerHTML = `<div class="w-full">
-            <img src="${imgSrc}" class="w-full rounded shadow-sm" alt="P${pageNum}生成結果" />
+            <img src="${imgSrc}" class="w-full rounded shadow-sm" alt="${label}生成結果" />
             <div class="text-center text-xs text-gray-400 mt-1">${(img.mime_type || 'image/png').split('/')[1].toUpperCase()} / ${sizeLabel}</div>
             <div class="flex gap-2 mt-2">
-                <button onclick="applySelectedToPage(${pageNum})" class="flex-1 px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 font-semibold">PDFに適用</button>
-                <button onclick="regeneratePage(${pageNum})" class="px-3 py-2 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 font-semibold" title="再生成">&#x21bb;</button>
+                <button onclick="applySelectedToPage(${keyArg})" class="flex-1 px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 font-semibold">${applyLabel}</button>
+                <button onclick="regeneratePage(${keyArg})" class="px-3 py-2 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 font-semibold" title="再生成">&#x21bb;</button>
             </div>
         </div>`;
         return;
@@ -651,19 +848,19 @@ function renderCandidates(pageNum, images) {
         const ringClass = selected
             ? 'ring-4 ring-gold scale-[1.02]'
             : 'ring-1 ring-gray-300 dark:ring-gray-600 opacity-70';
-        html += `<div class="candidate-card cursor-pointer rounded overflow-hidden transition-all ${ringClass}" onclick="selectCandidate(${pageNum}, ${i})">
+        html += `<div class="candidate-card cursor-pointer rounded overflow-hidden transition-all ${ringClass}" onclick="selectCandidate(${keyArg}, ${i})">
             <img src="${imgSrc}" class="w-full" alt="候補${i + 1}" />
             <div class="text-center text-xs py-1 bg-gray-50 dark:bg-gray-800">
                 <span class="font-medium">${selected ? '<span class="text-gold">&#x2713;</span> ' : ''}候補 ${i + 1}</span>
                 <span class="text-gray-400 ml-1">${mimeLabel} / ${sizeLabel}</span>
             </div>
-            <button onclick="event.stopPropagation(); selectCandidate(${pageNum}, ${i})" class="w-full py-1 text-xs font-semibold ${selected ? 'bg-gold text-navy' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'} transition-colors select-btn">選択</button>
+            <button onclick="event.stopPropagation(); selectCandidate(${keyArg}, ${i})" class="w-full py-1 text-xs font-semibold ${selected ? 'bg-gold text-navy' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'} transition-colors select-btn">選択</button>
         </div>`;
     }
     html += `</div>`;
     html += `<div class="flex gap-2">`;
-    html += `<button onclick="applySelectedToPage(${pageNum})" class="flex-1 px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 font-semibold">選択した画像をPDFに適用</button>`;
-    html += `<button onclick="regeneratePage(${pageNum})" class="px-3 py-2 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 font-semibold" title="再生成">&#x21bb; 再生成</button>`;
+    html += `<button onclick="applySelectedToPage(${keyArg})" class="flex-1 px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 font-semibold">選択した画像を${applyLabel}</button>`;
+    html += `<button onclick="regeneratePage(${keyArg})" class="px-3 py-2 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 font-semibold" title="再生成">&#x21bb; 再生成</button>`;
     html += `</div>`;
     html += `</div>`;
     genResult.innerHTML = html;
@@ -673,17 +870,18 @@ async function generateSlides() {
     const apiKey = document.getElementById('api-key').value.trim();
     if (!apiKey) { alert('APIキーを入力してください'); return; }
 
-    const pageNums = Object.keys(analysisData).map(Number);
-    if (pageNums.length === 0) { alert('先にスライドを解析してください'); return; }
+    const keys = Object.keys(analysisData);
+    if (keys.length === 0) { alert('先にスライドを解析してください'); return; }
 
     const numImages = parseInt(document.getElementById('num-images').value) || 4;
     const genModel = document.getElementById('gen-model').value;
     showProgress(`${genModel}で画像生成中...`, 0);
 
     try {
-        for (let i = 0; i < pageNums.length; i++) {
-            const p = pageNums[i];
+        for (let i = 0; i < keys.length; i++) {
+            const p = keys[i];
             const data = analysisData[p];
+            const label = isImageKey(p) ? String(p).toUpperCase() : `P${p}`;
 
             // Get latest XML
             const structuredEditor = document.getElementById(`structured-editor-${p}`);
@@ -713,7 +911,7 @@ async function generateSlides() {
             } catch (sseErr) {
                 // SSE失敗時は従来のエンドポイントにフォールバック
                 console.warn('[SSE] fallback to sync endpoint:', sseErr.message);
-                showProgress(`P${p}: フォールバック生成中... (${i+1}/${pageNums.length})`, Math.round(((i + 0.3) / pageNums.length) * 100));
+                showProgress(`${label}: フォールバック生成中... (${i+1}/${keys.length})`, Math.round(((i + 0.3) / keys.length) * 100));
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 250000);
@@ -769,8 +967,9 @@ async function regeneratePage(pageNum) {
 
     const numImages = parseInt(document.getElementById('num-images').value) || 4;
     const genModel = document.getElementById('gen-model').value;
+    const label = isImageKey(pageNum) ? String(pageNum).toUpperCase() : `P${pageNum}`;
 
-    showProgress(`P${pageNum}: ${genModel}で${numImages}枚を再生成中...`, 0);
+    showProgress(`${label}: ${genModel}で${numImages}枚を再生成中...`, 0);
 
     try {
         // Get latest XML
@@ -791,14 +990,14 @@ async function regeneratePage(pageNum) {
 
             if (result.images && result.images.length > 0) {
                 renderCandidates(pageNum, result.images);
-                EditorUI.showToast(`P${pageNum}: 再生成完了`, 'success');
+                EditorUI.showToast(`${label}: 再生成完了`, 'success');
             } else {
                 EditorUI.showToast('画像生成に失敗しました', 'error');
             }
         } catch (sseErr) {
             // フォールバック
             console.warn('[SSE] fallback to sync endpoint:', sseErr.message);
-            showProgress(`P${pageNum}: フォールバック再生成中...`, 30);
+            showProgress(`${label}: フォールバック再生成中...`, 30);
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 250000);
@@ -820,7 +1019,7 @@ async function regeneratePage(pageNum) {
                 const result = await resp.json();
                 if (result.images && result.images.length > 0) {
                     renderCandidates(pageNum, result.images);
-                    EditorUI.showToast(`P${pageNum}: 再生成完了`, 'success');
+                    EditorUI.showToast(`${label}: 再生成完了`, 'success');
                 } else {
                     EditorUI.showToast('画像生成に失敗しました', 'error');
                 }
@@ -837,16 +1036,16 @@ async function regeneratePage(pageNum) {
 }
 
 async function regenerateAll() {
-    const pageNums = Object.keys(analysisData).map(Number);
-    if (pageNums.length === 0) { alert('先にスライドを解析してください'); return; }
+    const keys = Object.keys(analysisData);
+    if (keys.length === 0) { alert('先にスライドを解析してください'); return; }
 
-    for (const p of pageNums) {
-        await regeneratePage(p);
+    for (const p of keys) {
+        await regeneratePage(isImageKey(p) ? p : Number(p));
     }
 }
 
-async function applySelectedToPage(pageNum) {
-    const data = analysisData[pageNum];
+async function applySelectedToPage(key) {
+    const data = analysisData[key];
     if (!data || !data.genImage) {
         EditorUI.showToast('画像が選択されていません', 'error');
         return;
@@ -854,7 +1053,43 @@ async function applySelectedToPage(pageNum) {
     // Use actual mime_type from the selected candidate
     const selected = data.genCandidates ? data.genCandidates[data.selectedIndex || 0] : null;
     const mimeType = (selected && selected.mime_type) || 'image/png';
-    await applyToPage(pageNum, data.genImage, mimeType);
+
+    if (isImageKey(key)) {
+        // Image-sourced analysis: append to existing PDF or create a new one
+        try {
+            const binary = atob(data.genImage);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+            let imageType = 'png';
+            if (mimeType && (mimeType.includes('jpeg') || mimeType.includes('jpg'))) {
+                imageType = 'jpg';
+            }
+
+            if (PdfEngine.isLoaded()) {
+                // Append as a new page at the end
+                const pageCount = PdfEngine.getPageCount();
+                await PdfEngine.addBlankPage(pageCount);
+                const newPageNum = PdfEngine.getPageCount();
+                await PdfEngine.replacePageWithImage(newPageNum, bytes, imageType);
+            } else {
+                // No PDF loaded — create a new PDF from this image
+                await PdfEngine.createFromImages([{ bytes, type: imageType }]);
+            }
+
+            if (currentFileId) {
+                await PdfStorage.updateFile(currentFileId, PdfEngine.getCurrentBytes());
+            }
+
+            EditorUI.showToast('画像をPDFに追加しました', 'success');
+        } catch (e) {
+            console.error('[Apply image] error:', e);
+            EditorUI.showToast('適用エラー: ' + (e?.message || String(e)), 'error');
+        }
+    } else {
+        // PDF page-based: replace existing page
+        await applyToPage(Number(key), data.genImage, mimeType);
+    }
 }
 
 async function applyToPage(pageNum, imageBase64, mimeType) {
@@ -891,17 +1126,54 @@ async function applyToPage(pageNum, imageBase64, mimeType) {
     }
 }
 
-function downloadResult() {
-    if (!PdfEngine.isLoaded()) {
+async function downloadResult() {
+    // If a PDF is already loaded, download it directly
+    if (PdfEngine.isLoaded()) {
+        try {
+            PdfEngine.download();
+            EditorUI.showToast('ダウンロード開始', 'success');
+        } catch (e) {
+            console.error('[Download] error:', e);
+            EditorUI.showToast('ダウンロードエラー: ' + e.message, 'error');
+        }
+        return;
+    }
+
+    // No PDF loaded — collect generated images from image-sourced analysis and create a PDF
+    const imageKeys = Object.keys(analysisData).filter(isImageKey);
+    if (imageKeys.length === 0) {
         EditorUI.showToast('PDFが読み込まれていません', 'error');
         return;
     }
+
     try {
+        const imageDataList = [];
+        for (const key of imageKeys) {
+            const data = analysisData[key];
+            if (!data || !data.genImage) continue;
+            const selected = data.genCandidates ? data.genCandidates[data.selectedIndex || 0] : null;
+            const mimeType = (selected && selected.mime_type) || 'image/png';
+            const binary = atob(data.genImage);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            let imageType = 'png';
+            if (mimeType && (mimeType.includes('jpeg') || mimeType.includes('jpg'))) {
+                imageType = 'jpg';
+            }
+            imageDataList.push({ bytes, type: imageType });
+        }
+
+        if (imageDataList.length === 0) {
+            EditorUI.showToast('生成された画像がありません', 'error');
+            return;
+        }
+
+        await PdfEngine.createFromImages(imageDataList);
         PdfEngine.download();
         EditorUI.showToast('ダウンロード開始', 'success');
     } catch (e) {
         console.error('[Download] error:', e);
-        EditorUI.showToast('ダウンロードエラー: ' + e.message, 'error');
+        EditorUI.showToast('ダウンロードエラー: ' + (e?.message || String(e)), 'error');
     }
 }
 
