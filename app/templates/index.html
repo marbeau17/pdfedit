@@ -13,20 +13,20 @@
             </svg>
             <span>ファイルを開く</span>
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">PDFファイルをブラウザ内で直接編集</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">PDF / AIファイルをブラウザ内で直接編集</p>
     </div>
 
     <!-- File open form with drag-and-drop -->
     <form x-data="{ dragOver: false, fileName: '', error: '' }"
           @submit.prevent
-          aria-label="PDFファイルを開く">
+          aria-label="ファイルを開く（PDF / AI対応）">
         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-8 text-center hover:border-gold transition-colors cursor-pointer"
              :class="{ 'border-gold bg-yellow-50 dark:bg-yellow-900/20': dragOver }"
              @dragover.prevent="dragOver = true"
              @dragleave="dragOver = false"
              @drop.prevent="dragOver = false; openFile($event.dataTransfer.files[0])">
 
-            <label for="pdf-open" class="sr-only">PDFファイルを選択</label>
+            <label for="pdf-open" class="sr-only">ファイルを選択（PDF / AI対応）</label>
             <input id="pdf-open" type="file" accept=".pdf,.ai" x-ref="fileInput" class="hidden"
                    @change="openFile($event.target.files[0])" />
 
@@ -40,7 +40,7 @@
 
             <button type="button" @click="$refs.fileInput.click()"
                     class="px-5 py-2.5 bg-navy hover:bg-navy/90 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2">
-                PDFファイルを開く
+                ファイルを開く
             </button>
 
             <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
