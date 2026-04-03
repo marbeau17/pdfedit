@@ -1,6 +1,6 @@
 """Health check endpoint."""
 import platform
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ async def health_check():
     """Health check endpoint."""
     return HealthResponse(
         status="healthy",
-        timestamp=datetime.now(UTC).isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         architecture="local-first",
         python_version=platform.python_version(),
         platform=platform.system(),
